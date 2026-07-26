@@ -1,0 +1,991 @@
+@import "tailwindcss";
+
+/* Die beiden Schriften werden in index.html per <link> geladen — als
+   @import hier würden sie hinter Tailwinds Regeln landen und der Browser
+   würde sie stillschweigend ignorieren. */
+
+/* ============================================================
+   Piraten-Thema als Tailwind-v4-Theme. Tailwind ist hier nur für
+   neue Komponenten gedacht — das Prototyp-CSS darunter bleibt
+   unangetastet und gewinnt, weil es außerhalb aller Layer steht.
+   ============================================================ */
+@theme {
+  --color-parchment: #e7d3a8;
+  --color-sea: #14222e;
+  --color-blood: #8b2e1f;
+  --color-gold: #b8862b;
+  --color-ink: #2b2014;
+  --font-pirate: "Pirata One", Georgia, serif;
+  --font-fell: "IM Fell English", Georgia, serif;
+}
+
+/* ============================================================
+   Ab hier: das CSS des Prototyps, 1:1 übernommen.
+   ============================================================ */
+
+:root {
+  --parchment: #e7d3a8;
+  --ink: #2b2014;
+  --ink-soft: #5a4630;
+  --red: #8b2e1f;
+  --gold: #b8862b;
+  --sea: #14222e;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; }
+
+.gla-root {
+  min-height: 100vh;
+  background: var(--sea);
+  background-image: radial-gradient(ellipse at 50% -20%, #2a4257 0%, var(--sea) 60%);
+  font-family: 'IM Fell English', Georgia, serif;
+  color: var(--ink);
+  padding-bottom: 90px;
+}
+
+.gla-header { text-align: center; padding: 22px 16px 10px; color: var(--parchment); }
+.gla-header h1 {
+  font-family: 'Pirata One', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(30px, 6vw, 44px);
+  margin: 0; letter-spacing: 2px;
+  text-shadow: 0 2px 0 #000;
+}
+.gla-header .sub { font-style: italic; opacity: .7; font-size: 14px; margin-top: 2px; }
+
+.gla-tabs { display: flex; justify-content: center; gap: 10px; margin: 14px 0 18px; flex-wrap: wrap; }
+.gla-tab {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 18px; letter-spacing: 1px;
+  padding: 8px 22px;
+  background: transparent; color: var(--parchment);
+  border: 1px solid rgba(231,211,168,.35);
+  border-radius: 3px; cursor: pointer;
+  transition: all .15s ease;
+}
+.gla-tab:hover { border-color: var(--gold); }
+.gla-tab.active { background: var(--parchment); color: var(--ink); border-color: var(--parchment); box-shadow: 0 3px 0 rgba(0,0,0,.4); }
+.gla-tab:focus-visible, .gla-btn:focus-visible, .att-circle input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.sheet {
+  max-width: 880px; margin: 0 auto;
+  background: var(--parchment);
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.25), transparent 50%),
+    radial-gradient(ellipse at 85% 90%, rgba(106,72,28,.18), transparent 55%),
+    radial-gradient(ellipse at 70% 20%, rgba(106,72,28,.10), transparent 40%);
+  border-radius: 4px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.55), inset 0 0 60px rgba(106,72,28,.25);
+  padding: 26px 22px 34px;
+  position: relative;
+}
+.sheet::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(43,32,20,.25); border-radius: 2px; pointer-events: none; }
+.sheet-title { font-family: 'Pirata One', Georgia, serif; font-size: clamp(26px, 5vw, 38px); text-align: center; margin: 0 0 4px; letter-spacing: 1px; }
+.rule { height: 3px; background: repeating-linear-gradient(90deg, var(--ink) 0 14px, transparent 14px 20px); opacity: .75; margin: 10px 0 18px; border-radius: 2px; }
+
+.field-label { font-family: 'Pirata One', Georgia, serif; font-size: 17px; letter-spacing: .5px; margin-bottom: 3px; display: flex; align-items: baseline; gap: 8px; }
+.gla-input, .gla-textarea {
+  width: 100%; background: transparent; border: none;
+  border-bottom: 1px solid rgba(43,32,20,.5);
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 16px; color: var(--ink); padding: 4px 2px;
+}
+.gla-textarea { resize: vertical; min-height: 56px; line-height: 1.5; background-image: repeating-linear-gradient(transparent 0 26px, rgba(43,32,20,.35) 26px 27px); }
+.gla-input:focus, .gla-textarea:focus { outline: none; border-bottom-color: var(--red); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.tally { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 34px; }
+.tally-group { display: inline-flex; position: relative; height: 24px; }
+.tally-stroke { width: 3px; height: 24px; background: var(--ink); margin-right: 5px; border-radius: 1px; transform: rotate(2deg); }
+.tally-cross { position: absolute; left: -3px; top: 10px; width: 36px; height: 3px; background: var(--ink); transform: rotate(-22deg); border-radius: 1px; }
+.tally-btns button {
+  font-family: 'Pirata One', Georgia, serif; font-size: 16px;
+  width: 30px; height: 30px;
+  border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+  border-radius: 50%; cursor: pointer; margin-left: 6px;
+}
+.tally-btns button:hover { background: var(--ink); color: var(--parchment); }
+
+.vital-row { display: flex; gap: 26px; flex-wrap: wrap; margin: 14px 0; }
+.vital { display: flex; align-items: center; gap: 10px; }
+.vital .icon { font-size: 26px; line-height: 1; }
+.vital input {
+  width: 64px; text-align: center;
+  font-family: 'Pirata One', Georgia, serif; font-size: 22px;
+  background: transparent; border: none; border-bottom: 2px solid var(--ink); color: var(--ink);
+}
+.vital input:focus { outline: none; border-bottom-color: var(--red); }
+
+.att-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 14px; margin-top: 8px; }
+@media (max-width: 560px) { .att-grid { grid-template-columns: repeat(2, 1fr); } }
+.att-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.att-circle {
+  width: 84px; height: 84px;
+  border: 2.5px solid var(--ink);
+  border-radius: 50% 48% 52% 50% / 50% 52% 48% 52%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative; background: rgba(255,255,255,.12);
+}
+.att-circle::after { content: ""; position: absolute; left: 12px; right: 12px; top: 50%; height: 2px; background: var(--ink); transform: rotate(-14deg); }
+.att-circle input {
+  width: 44px; text-align: center;
+  font-family: 'Pirata One', Georgia, serif; font-size: 20px;
+  background: transparent; border: none; color: var(--ink);
+  position: relative; z-index: 1; margin-bottom: 12px;
+}
+.att-circle input:focus { outline: none; }
+.att-mod { font-family: 'Pirata One', Georgia, serif; font-size: 17px; margin-top: -8px; color: var(--red); }
+.att-name { font-family: 'Pirata One', Georgia, serif; font-size: 15px; letter-spacing: .5px; text-align: center; }
+.att-roll {
+  font-size: 12px; font-family: 'IM Fell English', Georgia, serif; font-style: italic;
+  background: transparent; border: 1px solid rgba(43,32,20,.45); color: var(--ink-soft);
+  border-radius: 3px; padding: 2px 10px; cursor: pointer;
+}
+.att-roll:hover { background: var(--ink); color: var(--parchment); border-color: var(--ink); }
+
+.inv-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.inv-row .gla-input { flex: 1; }
+.inv-row .qty { width: 56px; text-align: center; }
+.inv-del { border: none; background: transparent; color: var(--red); font-size: 18px; cursor: pointer; line-height: 1; padding: 4px; }
+.section-hint { font-style: italic; font-size: 12px; color: var(--ink-soft); margin: 0 0 8px; }
+.section-empty { font-style: italic; opacity: .55; margin: 4px 0 8px; }
+
+.weapon-row {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;
+}
+.weapon-row .w-name { flex: 2; min-width: 140px; }
+.weapon-row .w-att, .skill-row .sk-att {
+  font-family: 'IM Fell English', Georgia, serif; font-size: 14px;
+  background: transparent; color: var(--ink);
+  border: 1px solid rgba(43,32,20,.5); border-radius: 3px; padding: 4px 6px;
+}
+.weapon-row .w-dmg { flex: 1; min-width: 90px; }
+.w-btn {
+  font-family: 'Pirata One', Georgia, serif; font-size: 13px; letter-spacing: .5px;
+  border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+  border-radius: 3px; padding: 5px 10px; cursor: pointer; white-space: nowrap;
+}
+.w-btn.hit:hover { background: var(--ink); color: var(--parchment); }
+.w-btn.dmg { border-color: var(--red); color: var(--red); }
+.w-btn.dmg:hover { background: var(--red); color: #f3e6c8; }
+
+.skill-row {
+  border: 1px solid rgba(43,32,20,.3); border-radius: 4px;
+  padding: 8px 10px; margin-bottom: 8px; background: rgba(255,255,255,.08);
+}
+.skill-head { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.skill-head .sk-name { flex: 2; min-width: 140px; }
+.sk-desc { min-height: 42px; }
+
+.frucht-head { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 10px; flex-wrap: wrap; }
+.frucht-typ, .rang-extras select, .rang-field select {
+  font-family: 'IM Fell English', Georgia, serif; font-size: 14px;
+  background: transparent; color: var(--ink);
+  border: 1px solid rgba(43,32,20,.5); border-radius: 3px; padding: 4px 6px;
+}
+.frucht-budget {
+  font-family: 'Pirata One', Georgia, serif; font-size: 15px; letter-spacing: .5px;
+  padding: 6px 12px; border-radius: 4px; margin-bottom: 12px;
+  background: rgba(184,134,43,.18); border: 1px solid var(--gold); color: var(--ink);
+}
+.frucht-budget.over { background: rgba(139,46,31,.16); border-color: var(--red); color: var(--red); }
+
+.rang { border: 1px solid rgba(43,32,20,.3); border-radius: 5px; margin-bottom: 9px; overflow: hidden; }
+.rang.off { opacity: .7; background: repeating-linear-gradient(135deg, transparent 0 8px, rgba(43,32,20,.05) 8px 16px); }
+.rang.on { background: rgba(184,134,43,.10); border-color: var(--gold); }
+.rang-head { display: flex; gap: 8px; align-items: center; padding: 7px 9px; flex-wrap: wrap; }
+.rang-no {
+  font-family: 'Pirata One', Georgia, serif; font-size: 15px;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--ink); flex-shrink: 0;
+}
+.rang.on .rang-no { background: var(--gold); border-color: var(--gold); color: var(--sea); }
+.rang-name { flex: 2; min-width: 130px; }
+.rang-cost { font-family: 'Pirata One', Georgia, serif; font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.rang-cost input {
+  width: 46px; text-align: center;
+  font-family: 'Pirata One', Georgia, serif; font-size: 14px;
+  background: transparent; border: 1px solid rgba(43,32,20,.5); border-radius: 3px; color: var(--ink);
+}
+.rang-lock {
+  font-family: 'Pirata One', Georgia, serif; font-size: 13px; letter-spacing: .5px;
+  border-radius: 3px; padding: 5px 12px; cursor: pointer; white-space: nowrap;
+  border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+}
+.rang-lock.on { background: var(--gold); border-color: var(--gold); color: var(--sea); }
+.rang-lock:disabled { opacity: .4; cursor: default; }
+.rang-body { padding: 0 9px 9px; }
+.rang-extras { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 6px; }
+.rang-field { font-family: 'Pirata One', Georgia, serif; font-size: 12px; letter-spacing: .5px; display: flex; flex-direction: column; gap: 3px; }
+.rang-field.grow { flex: 1; min-width: 140px; }
+
+/* ============ Steckbriefe & Crew ============ */
+.crew-panel { max-width: 1000px; margin: 0 auto; }
+.crew-sheet {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  background: var(--parchment); border-radius: 6px; padding: 16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4); margin-bottom: 16px;
+}
+.crew-flag { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 160px; }
+.jolly-img, .jolly-empty {
+  width: 150px; height: 150px; border-radius: 8px; object-fit: cover;
+  border: 3px solid var(--ink); background: #14222e;
+}
+.jolly-empty { display: flex; align-items: center; justify-content: center; font-size: 64px; color: var(--parchment); }
+.crew-upload { display: inline-flex; align-items: center; cursor: pointer; }
+.crew-info { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 10px; }
+.crew-field { display: flex; flex-direction: column; gap: 3px; }
+.crew-name { font-family: 'Pirata One', Georgia, serif; font-size: 20px; }
+
+.bounty-total {
+  text-align: center; font-family: 'Pirata One', Georgia, serif; font-size: 20px;
+  color: var(--parchment); margin-bottom: 16px; letter-spacing: 1px;
+}
+.bounty-sum { color: var(--gold); margin-left: 10px; font-size: 24px; }
+.berry-sym { font-family: Georgia, serif; }
+
+.wanted-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px;
+}
+.wanted {
+  background: #e8d6a8;
+  background-image:
+    radial-gradient(ellipse at 15% 10%, rgba(255,255,255,.4), transparent 40%),
+    radial-gradient(ellipse at 85% 88%, rgba(120,82,30,.28), transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='40' height='40' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  border: 2px solid #6a481c; border-radius: 3px;
+  padding: 10px 10px 0; display: flex; flex-direction: column; align-items: center;
+  box-shadow: 0 6px 18px rgba(0,0,0,.5);
+  position: relative;
+}
+.wanted-head {
+  font-family: 'Pirata One', Georgia, serif; font-size: 34px; letter-spacing: 3px;
+  color: #3a2a16; line-height: 1; margin-top: 2px;
+}
+.wanted-sub {
+  font-family: 'IM Fell English', serif; font-weight: 700; font-size: 11px;
+  letter-spacing: 2px; color: #4a3720; margin: 2px 0 8px;
+}
+.wanted-photo {
+  position: relative; width: 100%; aspect-ratio: 1; margin-bottom: 8px;
+  border: 3px solid #3a2a16; background: #cbb583; overflow: hidden;
+}
+.wanted-photo img { width: 100%; height: 100%; object-fit: cover; filter: sepia(.35) contrast(1.05); }
+.wanted-photo-empty {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 72px; color: #9a835a;
+}
+.wanted-upload {
+  position: absolute; bottom: 6px; right: 6px;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(20,34,46,.82); color: #f3e6c8; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+  border: 1px solid rgba(243,230,200,.4);
+}
+.wanted-name {
+  font-family: 'Pirata One', Georgia, serif; font-size: 20px; text-align: center;
+  background: transparent; border: none; color: #2b1e0e; width: 100%; letter-spacing: 1px;
+}
+.wanted-name:focus { outline: none; }
+.wanted-epitheton {
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: 13px; text-align: center;
+  background: transparent; border: none; color: #5a4324; width: 100%; margin-bottom: 4px;
+}
+.wanted-epitheton:focus { outline: none; }
+.wanted-bounty {
+  display: flex; align-items: center; justify-content: center; gap: 2px;
+  border-top: 2px solid #3a2a16; padding-top: 6px; width: 100%;
+  font-family: 'Pirata One', Georgia, serif; font-size: 22px; color: #2b1e0e;
+}
+.wanted-bounty .berry-sym { font-size: 20px; margin-right: 2px; }
+.wanted-bounty-input { width: 130px; }
+.wanted-bounty-input input, .wanted-bounty input {
+  font-family: 'Pirata One', Georgia, serif !important; font-size: 20px !important;
+  text-align: center; background: transparent; border: none; color: #2b1e0e; width: 130px;
+}
+.wanted-bounty-fmt {
+  font-family: 'IM Fell English', serif; font-size: 12px; color: #5a4324; margin-top: 1px;
+}
+.wanted-marine {
+  font-family: 'Pirata One', Georgia, serif; font-size: 12px; letter-spacing: 2px;
+  color: #4a3720; background: rgba(58,42,22,.12);
+  width: calc(100% + 20px); margin: 8px -10px 0; padding: 5px 0; text-align: center;
+}
+
+/* ============ Logbuch (Notizen & Quests) ============ */
+.notes-panel { max-width: 1000px; margin: 0 auto; }
+.notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 760px) { .notes-grid { grid-template-columns: 1fr; } }
+.notes-col {
+  background: var(--parchment); border-radius: 6px; padding: 14px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4);
+}
+.notes-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+.quest-count { font-style: italic; font-size: 12px; opacity: .65; }
+.quest-add { display: flex; gap: 8px; margin-bottom: 12px; }
+.quest-add .gla-input { flex: 1; }
+.quest-list { display: flex; flex-direction: column; gap: 8px; }
+.quest {
+  display: flex; gap: 8px; align-items: flex-start;
+  border: 1px solid rgba(43,32,20,.25); border-radius: 5px; padding: 8px 10px;
+  background: rgba(255,255,255,.14);
+}
+.quest.done { opacity: .6; }
+.quest-check {
+  background: none; border: none; cursor: pointer; font-size: 22px; line-height: 1;
+  color: var(--ink); padding: 0; margin-top: 2px;
+}
+.quest.done .quest-check { color: var(--gold); }
+.quest-body { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.quest-title {
+  font-family: 'Pirata One', Georgia, serif; font-size: 17px; letter-spacing: .3px;
+  background: transparent; border: none; border-bottom: 1px solid transparent; color: var(--ink);
+  padding: 1px 2px;
+}
+.quest-title:focus { outline: none; border-bottom-color: rgba(43,32,20,.4); }
+.quest.done .quest-title { text-decoration: line-through; }
+.quest-notiz {
+  font-family: 'IM Fell English', Georgia, serif; font-size: 13px;
+  background: transparent; border: 1px solid rgba(43,32,20,.2); border-radius: 4px;
+  color: var(--ink); padding: 4px 6px; resize: vertical; min-height: 32px; width: 100%;
+}
+.quest-notiz:focus { outline: none; border-color: rgba(43,32,20,.5); }
+.quest-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; }
+.notes-area {
+  width: 100%; min-height: 420px; resize: vertical;
+  font-family: 'IM Fell English', Georgia, serif; font-size: 15px; line-height: 1.5;
+  background: rgba(255,255,255,.14); border: 1px solid rgba(43,32,20,.25);
+  border-radius: 5px; color: var(--ink); padding: 10px 12px;
+}
+.notes-area:focus { outline: none; border-color: rgba(43,32,20,.5); }
+
+/* ============ Detail-Editor (Schauplatz) ============ */
+.det-panel { max-width: 1000px; margin: 0 auto; }
+.det-tools { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.det-tbtn {
+  font-family: 'Pirata One', Georgia, serif; font-size: 14px;
+  padding: 6px 12px; border-radius: 4px; cursor: pointer;
+  border: 1px solid rgba(231,211,168,.4); background: transparent; color: var(--parchment);
+}
+.det-tbtn.on { background: var(--gold); border-color: var(--gold); color: var(--sea); }
+.det-bg-sel {
+  font-family: 'IM Fell English', serif; font-size: 13px;
+  background: transparent; color: var(--parchment);
+  border: 1px solid rgba(231,211,168,.4); border-radius: 3px; padding: 4px 6px;
+}
+.det-bg-sel option { color: #2b2014; }
+.det-stage {
+  border: 6px solid #20120a; border-radius: 8px; overflow: hidden;
+  box-shadow: 0 10px 36px rgba(0,0,0,.55); line-height: 0;
+}
+.det-svg { display: block; width: 100%; height: auto; aspect-ratio: 100 / 66; }
+.det-label-text {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 2.4px; fill: #2b2014;
+  paint-order: stroke; stroke: #f3e6c8; stroke-width: 0.5px; stroke-linejoin: round;
+}
+.det-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.det-actions .gla-btn { border-color: var(--parchment); color: var(--parchment); }
+.det-actions .gla-btn:hover { background: var(--parchment); color: var(--ink); }
+.det-actions .gla-btn.primary { background: var(--red); border-color: var(--red); color: #f3e6c8; }
+.det-actions .gla-btn.primary:hover { background: #6e2417; color: #fff; }
+
+/* ============ Kartografie / Zeichentool ============ */
+.draw-panel { max-width: 1000px; margin: 0 auto; }
+.draw-tools { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.tool-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.tool-label { font-family: 'Pirata One', Georgia, serif; font-size: 14px; color: var(--parchment); min-width: 78px; }
+.terr-btn {
+  font-family: 'IM Fell English', serif; font-size: 13px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 4px; cursor: pointer;
+  border: 1px solid rgba(231,211,168,.4); background: transparent; color: var(--parchment);
+}
+.terr-btn .terr-swatch {
+  width: 14px; height: 14px; border-radius: 3px;
+  background: var(--terr); border: 1px solid rgba(0,0,0,.3);
+}
+.terr-btn.on { border-color: var(--gold); background: rgba(184,134,43,.2); }
+.terr-btn.eraser { font-style: italic; }
+.brush-btn, .bld-btn {
+  font-family: 'Pirata One', serif; font-size: 15px;
+  width: 34px; height: 34px; border-radius: 4px; cursor: pointer;
+  border: 1px solid rgba(231,211,168,.4); background: transparent; color: var(--parchment);
+}
+.brush-btn.on { background: var(--gold); border-color: var(--gold); color: var(--sea); }
+.bld-btn { font-size: 18px; }
+.bld-btn.on { background: var(--gold); border-color: var(--gold); }
+
+.draw-stage {
+  position: relative; width: 100%;
+  border: 6px solid #20120a; border-radius: 8px; overflow: hidden;
+  box-shadow: 0 10px 36px rgba(0,0,0,.55);
+  line-height: 0;
+}
+.draw-canvas {
+  display: block; width: 100%; height: auto;
+  image-rendering: pixelated;   /* scharfe Terrainkanten */
+  touch-action: none; cursor: crosshair;
+}
+.bld-marker {
+  position: absolute; transform: translate(-50%, -50%);
+  font-size: 26px; line-height: 1; pointer-events: auto;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.6));
+}
+.bld-icon { pointer-events: none; }
+.bld-del {
+  position: absolute; top: -8px; right: -12px;
+  width: 16px; height: 16px; border-radius: 50%; border: none;
+  background: var(--red); color: #f3e6c8; font-size: 10px; cursor: pointer;
+  display: none;
+}
+.bld-marker:hover .bld-del { display: block; }
+
+.draw-actions {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px;
+}
+.draw-mode-hint { font-style: italic; font-size: 13px; color: var(--parchment); opacity: .8; }
+.draw-actions .gla-btn { border-color: var(--parchment); color: var(--parchment); }
+.draw-actions .gla-btn:hover { background: var(--parchment); color: var(--ink); }
+.draw-actions .gla-btn.primary { background: var(--red); border-color: var(--red); color: #f3e6c8; }
+.draw-actions .gla-btn.primary:hover { background: #6e2417; color: #fff; }
+
+/* ============ Karte ============ */
+.map-panel { max-width: 1000px; margin: 0 auto; }
+.map-toolbar {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;
+}
+.map-btn, .map-chip {
+  font-family: 'Pirata One', Georgia, serif; font-size: 14px; letter-spacing: .5px;
+  padding: 6px 12px; border-radius: 4px; cursor: pointer;
+  border: 1px solid rgba(231,211,168,.5); background: transparent; color: var(--parchment);
+}
+.map-btn:hover { border-color: var(--gold); }
+.map-btn.on { background: var(--gold); border-color: var(--gold); color: var(--sea); }
+.map-btn.upload { display: inline-flex; align-items: center; }
+.map-btn.save { border-color: var(--parchment); }
+.map-btn.save:hover { background: var(--parchment); color: var(--ink); }
+.map-sep { width: 1px; height: 22px; background: rgba(231,211,168,.3); margin: 0 2px; }
+.map-chip { border-radius: 16px; font-size: 13px; }
+.map-chip.crew { border-color: #4b95b8; color: #9fd0e6; }
+.map-chip.gegner { border-color: var(--red); color: #e6a08f; }
+.map-chip.insel { border-color: #3ea768; color: #9fe0b6; }
+.map-chip.schiff { border-color: #b8942e; color: #e6cf8f; }
+.map-chip.ziel { border-color: #b85fbf; color: #e6a8ea; }
+
+.map-view {
+  position: relative;
+  width: 100%; aspect-ratio: 16 / 10;
+  border-radius: 8px; overflow: hidden;
+  border: 6px solid #20120a;
+  box-shadow: 0 10px 36px rgba(0,0,0,.55), inset 0 0 80px rgba(0,0,0,.4);
+  background-size: cover; background-position: center;
+  touch-action: none; user-select: none;
+}
+.map-view.sea {
+  background-color: #1d3a4d;
+  background-image:
+    radial-gradient(ellipse at 30% 20%, rgba(60,110,140,.5), transparent 55%),
+    radial-gradient(ellipse at 75% 75%, rgba(20,45,62,.6), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 2px, transparent 2px 26px);
+}
+.map-view.grid::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(231,211,168,.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(231,211,168,.18) 1px, transparent 1px);
+  background-size: 6.25% 10%;
+}
+.map-hint {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  text-align: center; color: rgba(231,211,168,.7); font-style: italic; font-size: 15px;
+  padding: 20px; pointer-events: none;
+}
+
+.token {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  cursor: grab; touch-action: none;
+}
+.token:active { cursor: grabbing; }
+.token-dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--tok); border: 2.5px solid #f3e6c8;
+  box-shadow: 0 3px 8px rgba(0,0,0,.6);
+}
+.token.insel .token-dot { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
+.token.schiff .token-dot { border-radius: 4px; transform: rotate(45deg); }
+.token.ziel .token-dot { border-radius: 50%; box-shadow: 0 0 0 3px rgba(184,95,191,.4), 0 3px 8px rgba(0,0,0,.6); }
+.token-label {
+  font-family: 'Pirata One', Georgia, serif; font-size: 12px;
+  color: #f3e6c8; background: rgba(20,34,46,.8);
+  padding: 1px 6px; border-radius: 8px; white-space: nowrap;
+  text-shadow: 0 1px 2px #000;
+}
+.token-x {
+  position: absolute; top: -8px; right: -10px;
+  width: 18px; height: 18px; border-radius: 50%;
+  border: none; background: var(--red); color: #f3e6c8;
+  font-size: 11px; line-height: 1; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+}
+.token:hover .token-x { display: flex; }
+
+.token-editor {
+  margin-top: 14px; background: var(--parchment); border-radius: 6px; padding: 12px 14px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4);
+}
+.token-editor-title { font-family: 'Pirata One', serif; font-weight: 400; margin: 0 0 8px; letter-spacing: 1px; }
+.token-edit-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.token-swatch { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #f3e6c8; box-shadow: 0 1px 3px rgba(0,0,0,.4); flex-shrink: 0; }
+.token-edit-row .gla-input { flex: 1; }
+.token-kind { font-style: italic; opacity: .6; font-size: 12px; min-width: 54px; }
+
+/* ============ Kampf-Tracker ============ */
+.combat { max-width: 880px; margin: 0 auto; }
+.combat-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+}
+.combat-round {
+  font-family: 'Pirata One', Georgia, serif; font-size: 26px;
+  color: var(--parchment); letter-spacing: 1px;
+}
+.combat-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.combat-actions .gla-btn { border-color: var(--parchment); color: var(--parchment); }
+.combat-actions .gla-btn:hover { background: var(--parchment); color: var(--ink); }
+.gla-btn.primary { background: var(--red); border-color: var(--red); color: #f3e6c8; }
+.gla-btn.primary:hover { background: #6e2417; color: #fff; }
+
+.add-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.add-label { color: var(--parchment); font-style: italic; font-size: 14px; }
+.add-chip {
+  font-family: 'Pirata One', Georgia, serif; font-size: 14px;
+  padding: 5px 12px; border-radius: 18px;
+  border: 1px solid rgba(231,211,168,.5); background: transparent; color: var(--parchment);
+  cursor: pointer;
+}
+.add-chip:hover { border-color: var(--gold); }
+.add-chip.enemy { border-color: var(--red); color: #e6a08f; }
+
+.fighter-list { display: flex; flex-direction: column; gap: 10px; }
+.fighter {
+  display: flex; gap: 12px; align-items: stretch;
+  background: var(--parchment);
+  border-radius: 6px; padding: 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4);
+  border-left: 6px solid var(--ink-soft);
+  transition: box-shadow .15s, transform .1s;
+}
+.fighter.crew { border-left-color: #2f6d8a; }
+.fighter.gegner { border-left-color: var(--red); }
+.fighter.active-turn {
+  box-shadow: 0 0 0 3px var(--gold), 0 6px 20px rgba(0,0,0,.5);
+  transform: translateX(4px);
+}
+.fighter.tot { opacity: .55; filter: grayscale(.5); }
+
+.fighter-ini {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; min-width: 54px;
+  border-right: 1px solid rgba(43,32,20,.25); padding-right: 10px;
+}
+.ini-val { font-family: 'Pirata One', Georgia, serif; font-size: 30px; color: var(--ink); line-height: 1; }
+.ini-roll {
+  background: transparent; border: 1px solid rgba(43,32,20,.4);
+  border-radius: 4px; cursor: pointer; font-size: 15px; padding: 2px 8px;
+}
+.ini-roll:hover { background: var(--ink); }
+
+.fighter-main { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.fighter-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fighter-name { font-family: 'Pirata One', Georgia, serif; font-size: 19px; }
+.fighter-name-input {
+  font-family: 'Pirata One', Georgia, serif; font-size: 18px;
+  border-bottom: 1px solid rgba(43,32,20,.5); max-width: 220px;
+}
+.side-tag {
+  font-family: 'IM Fell English', serif; font-style: italic; font-size: 11px;
+  padding: 2px 8px; border-radius: 10px;
+}
+.side-tag.crew { background: rgba(47,109,138,.2); color: #235870; }
+.side-tag.gegner { background: rgba(139,46,31,.18); color: var(--red); }
+.dead-tag { font-family: 'Pirata One', serif; font-size: 13px; color: var(--red); }
+
+.hp-row { display: flex; align-items: center; gap: 10px; }
+.hp-bar {
+  flex: 1; height: 16px; border-radius: 8px;
+  background: rgba(43,32,20,.18); overflow: hidden;
+  border: 1px solid rgba(43,32,20,.3);
+}
+.hp-fill { height: 100%; background: linear-gradient(90deg, #4caf6d, #6fd98c); transition: width .25s; }
+.hp-fill.mid { background: linear-gradient(90deg, #cf9a2e, #e3b257); }
+.hp-fill.low { background: linear-gradient(90deg, #b5311f, #e05a44); }
+.hp-num { display: flex; align-items: center; gap: 2px; }
+.hp-num input {
+  width: 46px; text-align: center;
+  font-family: 'Pirata One', Georgia, serif; font-size: 16px;
+  background: transparent; border: none; border-bottom: 1.5px solid var(--ink); color: var(--ink);
+}
+.hp-num input:focus { outline: none; border-bottom-color: var(--red); }
+.hp-sep { opacity: .6; }
+
+.dmg-controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.dmg-controls > button {
+  font-family: 'Pirata One', Georgia, serif; font-size: 14px;
+  width: 38px; height: 30px;
+  border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+  border-radius: 4px; cursor: pointer;
+}
+.dmg-controls > button:hover { background: var(--ink); color: var(--parchment); }
+.ini-mod-field, .ini-att-sel { font-family: 'Pirata One', serif; font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.ini-mod-field input {
+  width: 44px; text-align: center;
+  font-family: 'Pirata One', serif; font-size: 14px;
+  background: transparent; border: 1px solid rgba(43,32,20,.5); border-radius: 3px; color: var(--ink);
+}
+.ini-att-sel {
+  font-family: 'IM Fell English', serif; font-size: 13px;
+  background: transparent; border: 1px solid rgba(43,32,20,.5); border-radius: 3px; padding: 3px 5px; color: var(--ink);
+}
+.atk-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding-top: 7px; margin-top: 3px; border-top: 1px dashed rgba(43,32,20,.25);
+}
+.atk-row.empty { font-style: italic; opacity: .55; font-size: 12px; border-top: none; }
+.atk-weapon {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(43,32,20,.06); border-radius: 14px; padding: 2px 4px 2px 10px;
+}
+.atk-wname { font-family: 'Pirata One', Georgia, serif; font-size: 13px; margin-right: 2px; }
+.atk-btn {
+  border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+  border-radius: 4px; padding: 3px 8px; cursor: pointer; font-size: 13px;
+  font-family: 'Pirata One', Georgia, serif; white-space: nowrap;
+}
+.atk-btn.hit:hover { background: var(--ink); color: var(--parchment); }
+.atk-btn.dmg { border-color: var(--red); color: var(--red); }
+.atk-btn.dmg:hover { background: var(--red); color: #f3e6c8; }
+.atk-mini { display: inline-flex; align-items: center; font-family: 'Pirata One', serif; font-size: 13px; }
+.atk-mini input {
+  width: 38px; text-align: center;
+  font-family: 'Pirata One', serif; font-size: 14px;
+  background: transparent; border: 1px solid rgba(43,32,20,.5); border-radius: 3px; color: var(--ink);
+}
+.atk-dmg-input { width: 70px; }
+
+.fighter-del {
+  margin-left: auto; border: none; background: transparent; color: var(--red);
+  font-size: 18px; cursor: pointer;
+}
+
+.table-sub { font-size: 15px; opacity: .7; font-style: italic; }
+.dmg-total {
+  font-family: 'Pirata One', Georgia, serif; font-size: clamp(28px, 7vw, 44px);
+  color: #ef6a52; letter-spacing: 2px; margin: 6px 0 10px;
+  text-shadow: 0 0 16px rgba(239,106,82,.5);
+}
+
+.berry-input { font-family: 'Pirata One', Georgia, serif; font-size: 20px; width: 130px; text-align: right; }
+
+.gla-btn {
+  font-family: 'Pirata One', Georgia, serif; font-size: 16px; letter-spacing: .5px;
+  padding: 8px 18px;
+  border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+  border-radius: 3px; cursor: pointer; transition: all .12s;
+}
+.gla-btn:hover { background: var(--ink); color: var(--parchment); }
+
+.char-switch { display: flex; gap: 8px; flex-wrap: wrap; max-width: 880px; margin: 0 auto 14px; padding: 0 4px; }
+.char-chip {
+  font-family: 'Pirata One', Georgia, serif; font-size: 15px;
+  padding: 6px 14px; border-radius: 20px;
+  border: 1px solid rgba(231,211,168,.4);
+  background: transparent; color: var(--parchment); cursor: pointer;
+}
+.char-chip.active { background: var(--gold); border-color: var(--gold); color: var(--sea); }
+
+.save-bar {
+  max-width: 880px; margin: 14px auto 0;
+  display: flex; gap: 10px; justify-content: flex-end; align-items: center;
+  color: var(--parchment); font-style: italic; font-size: 13px; padding: 0 4px;
+}
+.save-bar .gla-btn { border-color: var(--parchment); color: var(--parchment); }
+.save-bar .gla-btn:hover { background: var(--parchment); color: var(--ink); }
+
+/* ============ Würfel-Tab (Steuerung) ============ */
+.dice-panel {
+  max-width: 880px; margin: 0 auto;
+  background: linear-gradient(160deg, #4d2c16, #341c0d);
+  border: 6px solid #20120a; border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.6), inset 0 0 80px rgba(0,0,0,.5);
+  padding: 24px 18px 26px;
+  color: var(--parchment);
+}
+.dice-controls { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; align-items: flex-end; }
+.dc-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.dc-group label { font-family: 'Pirata One', Georgia, serif; font-size: 15px; letter-spacing: 1px; }
+.dc-group select, .dc-group input {
+  font-family: 'Pirata One', Georgia, serif; font-size: 18px;
+  background: var(--parchment); color: var(--ink);
+  border: 2px solid #20120a; border-radius: 4px;
+  padding: 6px 10px; min-width: 86px; text-align: center;
+}
+.roll-btn {
+  font-family: 'Pirata One', Georgia, serif; font-size: 22px; letter-spacing: 1.5px;
+  padding: 10px 34px;
+  background: var(--red); color: #f3e6c8;
+  border: 2px solid #20120a; border-radius: 6px;
+  cursor: pointer; box-shadow: 0 4px 0 #20120a;
+  transition: transform .08s;
+}
+.roll-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #20120a; }
+.probe-hint { text-align: center; font-style: italic; font-size: 13px; opacity: .7; margin-top: 14px; }
+
+.history { max-width: 880px; margin: 16px auto 0; color: var(--parchment); font-size: 14px; padding: 0 6px; }
+.history h3 { font-family: 'Pirata One', Georgia, serif; font-weight: 400; letter-spacing: 1px; margin: 0 0 6px; }
+.history li { opacity: .85; margin-bottom: 3px; list-style: none; }
+.history ul { padding: 0; margin: 0; }
+
+/* ============ Fullscreen-Würfeltisch ============ */
+.table-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: radial-gradient(ellipse at 50% 38%, #1d6443 0%, #11402a 55%, #0a2719 100%);
+  overflow: hidden;
+  animation: tableIn .3s ease both;
+}
+@keyframes tableIn { from { opacity: 0; } to { opacity: 1; } }
+.table-overlay::before {
+  content: ""; position: absolute; inset: 0;
+  border: 14px solid transparent;
+  border-image: linear-gradient(160deg, #5a3318, #2c1809) 1;
+  box-shadow: inset 0 0 120px rgba(0,0,0,.75);
+  pointer-events: none; z-index: 3;
+}
+.table-overlay::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, rgba(255,244,200,.10), transparent 55%);
+  pointer-events: none;
+}
+.table-close {
+  position: absolute; top: 24px; right: 24px; z-index: 5;
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 17px; letter-spacing: 1px;
+  background: rgba(0,0,0,.35); color: var(--parchment);
+  border: 1px solid rgba(231,211,168,.5);
+  border-radius: 4px; padding: 8px 18px; cursor: pointer;
+}
+.table-close:hover { background: rgba(0,0,0,.6); }
+.table-label {
+  position: absolute; top: 26px; left: 0; right: 0;
+  text-align: center;
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: clamp(20px, 4vw, 30px); letter-spacing: 2px;
+  color: rgba(231,211,168,.85);
+  text-shadow: 0 2px 6px rgba(0,0,0,.6);
+  pointer-events: none; z-index: 4;
+}
+
+.dice-area {
+  position: absolute; inset: 0;
+  touch-action: none;
+  cursor: grab;
+  z-index: 2;
+  /* eine gemeinsame Kamera über der Tischmitte */
+  perspective: 1500px;
+  perspective-origin: 50% 42%;
+  transform-style: preserve-3d;
+}
+.dice-area.grabbing { cursor: grabbing; }
+
+.phys-die {
+  position: absolute; left: 0; top: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.phys-die > .die-cube { width: 72px; height: 72px; }
+.table-hint {
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 13px; font-style: italic; letter-spacing: 0;
+  opacity: .55; margin-top: 2px;
+}
+
+.phys-shadow {
+  position: absolute; left: 0; top: 0;
+  width: 72px; height: 72px;
+  transform-style: preserve-3d;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0,0,0,.5), transparent 68%);
+  will-change: transform, opacity;
+  z-index: 1;
+}
+.die-cube {
+  width: 100%; height: 100%; position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.die-face {
+  position: absolute; inset: 0;
+  background: #f5ecd7;
+  border: 2px solid #b9a87f;
+  border-radius: 10px;
+  display: grid; grid-template: repeat(3,1fr) / repeat(3,1fr);
+  padding: 9px;
+  box-shadow: inset 0 0 9px rgba(0,0,0,.18);
+  backface-visibility: hidden;
+}
+.pip { width: 11px; height: 11px; border-radius: 50%; background: var(--ink); align-self: center; justify-self: center; }
+
+.die-canvas {
+  display: block;
+  image-rendering: auto;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
+}
+
+.result-panel {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 4;
+  padding: 22px 16px calc(26px + env(safe-area-inset-bottom));
+  text-align: center;
+  background: linear-gradient(transparent, rgba(0,0,0,.55) 40%);
+  animation: panelUp .4s ease both;
+}
+@keyframes panelUp { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sum-line {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: clamp(20px, 4.5vw, 28px); letter-spacing: 1px;
+  color: var(--parchment);
+  text-shadow: 0 2px 4px rgba(0,0,0,.7);
+}
+.sum-line .mod { color: var(--gold); }
+.stamp {
+  display: inline-block; margin: 10px 0 14px;
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: clamp(26px, 6vw, 40px); letter-spacing: 4px;
+  padding: 6px 26px;
+  border: 4px double currentColor; border-radius: 4px;
+  transform: rotate(-3deg);
+  animation: stampIn .35s cubic-bezier(.2,2.2,.4,1) both;
+  text-shadow: 0 0 14px currentColor;
+}
+@keyframes stampIn { from { transform: rotate(-3deg) scale(2.4); opacity: 0; } to { transform: rotate(-3deg) scale(1); opacity: 1; } }
+.stamp.ok { color: #5fd98c; }
+.stamp.mid { color: #e3b257; }
+.stamp.fail { color: #ef6a52; }
+.panel-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.panel-btns .roll-btn { font-size: 19px; padding: 9px 26px; }
+.panel-btns .ghost {
+  font-family: 'Pirata One', Georgia, serif; font-size: 17px; letter-spacing: 1px;
+  padding: 9px 22px;
+  background: transparent; color: var(--parchment);
+  border: 1.5px solid rgba(231,211,168,.6); border-radius: 6px; cursor: pointer;
+}
+.panel-btns .ghost:hover { background: rgba(231,211,168,.15); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp, .result-panel, .table-overlay { animation: none !important; }
+}
+
+.toast {
+  position: fixed; bottom: 18px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--parchment); color: var(--ink);
+  font-family: 'IM Fell English', Georgia, serif;
+  padding: 10px 22px; border-radius: 4px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.5);
+  font-size: 15px; z-index: 200;
+}
+
+/* ============================================================
+   Neu in der Web-App: Anmeldung, Kopfleiste, Speicher-Anzeige.
+   ============================================================ */
+
+.auth-screen {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 24px 16px;
+  background: var(--sea);
+  background-image: radial-gradient(ellipse at 50% -10%, #2a4257 0%, var(--sea) 60%);
+  font-family: 'IM Fell English', Georgia, serif;
+}
+.auth-card {
+  width: 100%; max-width: 420px;
+  background: var(--parchment);
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.25), transparent 50%),
+    radial-gradient(ellipse at 85% 90%, rgba(106,72,28,.18), transparent 55%);
+  border-radius: 5px; padding: 26px 22px 28px;
+  box-shadow: 0 12px 44px rgba(0,0,0,.6), inset 0 0 60px rgba(106,72,28,.22);
+  position: relative;
+}
+.auth-card::before {
+  content: ""; position: absolute; inset: 8px;
+  border: 1px solid rgba(43,32,20,.25); border-radius: 2px; pointer-events: none;
+}
+.auth-title {
+  font-family: 'Pirata One', Georgia, serif; font-weight: 400;
+  font-size: 30px; text-align: center; margin: 0 0 2px; letter-spacing: 1px;
+}
+.auth-sub { text-align: center; font-style: italic; font-size: 13px; opacity: .7; margin-bottom: 14px; }
+.auth-field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 12px; }
+.auth-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.auth-actions .gla-btn { width: 100%; }
+.auth-actions .gla-btn.primary { background: var(--red); border-color: var(--red); color: #f3e6c8; }
+.auth-actions .gla-btn.primary:hover { background: #6e2417; color: #fff; }
+.auth-switch {
+  background: none; border: none; cursor: pointer; text-decoration: underline;
+  font-family: 'IM Fell English', Georgia, serif; font-size: 13px; color: var(--ink-soft);
+}
+.auth-msg {
+  margin-top: 12px; padding: 8px 10px; border-radius: 4px; font-size: 14px;
+  background: rgba(184,134,43,.18); border: 1px solid var(--gold);
+}
+.auth-msg.fehler { background: rgba(139,46,31,.16); border-color: var(--red); color: var(--red); }
+.auth-hinweis {
+  max-width: 420px; text-align: center; color: rgba(231,211,168,.75);
+  font-size: 13px; font-style: italic; line-height: 1.5;
+}
+.auth-hinweis code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-style: normal; font-size: 12px; color: var(--gold);
+}
+
+.gla-topbar {
+  display: flex; justify-content: flex-end; align-items: center; gap: 12px;
+  padding: 10px 16px 0; color: rgba(231,211,168,.8); font-size: 13px;
+  flex-wrap: wrap;
+}
+.gla-topbar .konto { font-style: italic; }
+.gla-topbar .abmelden {
+  font-family: 'Pirata One', Georgia, serif; font-size: 14px; letter-spacing: .5px;
+  background: transparent; color: var(--parchment);
+  border: 1px solid rgba(231,211,168,.4); border-radius: 3px;
+  padding: 4px 12px; cursor: pointer;
+}
+.gla-topbar .abmelden:hover { border-color: var(--gold); }
+
+.speicher-status {
+  font-style: italic; font-size: 12px; opacity: .75;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.speicher-status.fehler { color: #ef6a52; opacity: 1; font-style: normal; }
+
+.lade-schirm {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  background: var(--sea);
+  background-image: radial-gradient(ellipse at 50% -10%, #2a4257 0%, var(--sea) 60%);
+  color: var(--parchment); font-family: 'IM Fell English', Georgia, serif;
+}
+.lade-schirm .anker { font-size: 46px; animation: schaukeln 2.2s ease-in-out infinite; }
+@keyframes schaukeln {
+  0%, 100% { transform: rotate(-9deg); }
+  50% { transform: rotate(9deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lade-schirm .anker { animation: none; }
+}
