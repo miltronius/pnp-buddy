@@ -1,4 +1,4 @@
-export function Ladebildschirm({ text = "Segel setzen …" }: { text?: string }) {
+export function LoadingScreen({ text = "Segel setzen …" }: { text?: string }) {
   return (
     <div className="lade-schirm">
       <div className="anker" aria-hidden>⚓</div>

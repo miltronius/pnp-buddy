@@ -1,16 +1,16 @@
-import { VERDIKT_TEXT, ausgleich } from "../lib/spiel";
-import { useKampagne } from "../state/KampagneContext";
-import { useSitzung } from "../state/SitzungContext";
+import { VERDICT_TEXT, balanceValue } from "../lib/game";
+import { useCampaign } from "../state/CampaignContext";
+import { useSession } from "../state/SessionContext";
 import { PhysicsTable } from "./PhysicsTable";
 
 /** Vollbild-Würfeltisch: erscheint, sobald ein Wurf angestoßen wurde. */
-export function WuerfelOverlay() {
-  const { active } = useKampagne();
-  const { throwSpec, result, handleSettled, rerollCurrent, closeTable } = useSitzung();
+export function DiceOverlay() {
+  const { active } = useCampaign();
+  const { throwSpec, result, handleSettled, rerollCurrent, closeTable } = useSession();
 
   if (!throwSpec) return null;
 
-  const attMod = result?.att ? ausgleich(active.attribute[result.att]) : 0;
+  const attMod = result?.att ? balanceValue(active.attribute[result.att]) : 0;
 
   return (
     <div className="table-overlay" role="dialog" aria-label="Würfeltisch">
@@ -48,7 +48,7 @@ export function WuerfelOverlay() {
             <div className="dmg-total">{result.total} Schaden</div>
           )}
           {result.verdict && (
-            <div><div className={`stamp ${result.verdict}`}>{VERDIKT_TEXT[result.verdict]}</div></div>
+            <div><div className={`stamp ${result.verdict}`}>{VERDICT_TEXT[result.verdict]}</div></div>
           )}
           <div className="panel-btns">
             <button className="roll-btn" onClick={rerollCurrent}>Nochmal werfen</button>

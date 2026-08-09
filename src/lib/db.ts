@@ -1,21 +1,15 @@
-/* ============================================================
-   Datenzugriffsschicht für Supabase.
-   Übersetzt zwischen DB-Zeile (snake_case, jsonb) und den
-   Prototyp-Objekten (camelCase), die der Rest der App benutzt.
-   ============================================================ */
-
-import { BILD_BUCKET, benoetigeSupabase } from "./supabase";
-import { datenUrlZuBlob } from "./bilder";
-import { neueUuid } from "./spiel";
+import { IMAGE_BUCKET, requireSupabase } from "./supabase";
+import { dataUrlToBlob } from "./images";
+import { newUuid } from "./game";
 import {
-  normalisiereCharakter, normalisiereCrew, normalisiereKarte,
-  normalisiereLogbuch, normalisiereSchauplatz, normalisiereZeichnung,
-} from "./normalisieren";
+  normalizeCharacter, normalizeCrew, normalizeMap,
+  normalizeLogbook, normalizeScene, normalizeDrawing,
+} from "./normalize";
 import type {
   Charakter, Crew, KampagnenDaten, KartenZustand,
   LogbuchZustand, SchauplatzZustand, ZeichnungZustand,
 } from "../types";
-import type { Speicher } from "./speicher";
+import type { Storage } from "./storage";
 
 type KartenArt = "tracker" | "drawing" | "detail";
 
@@ -46,7 +40,7 @@ interface CharakterZeile {
 /* ---------- Mapper ---------- */
 
 function zuCharakter(r: CharakterZeile): Charakter {
-  return normalisiereCharakter({
+  return normalizeCharacter({
     id: r.id,
     name: r.name,
     epitheton: r.epitheton,
@@ -96,7 +90,7 @@ function zuZeile(userId: string, campaignId: string, c: Charakter, sortierung: n
 
 /* ---------- Cloud-Speicher ---------- */
 
-export function erstelleCloudSpeicher(userId: string): Speicher {
+export function createCloudStorage(userId: string): Storage {
   // Für den ersten Meilenstein hat jeder Benutzer genau eine Kampagne.
   // Die Spalte ist trotzdem überall gesetzt, damit Meilenstein 2
   // (geteilte Kampagnen) ohne Datenwanderung nachrüstbar ist.
@@ -104,7 +98,7 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
 
   async function holeKampagne(): Promise<string> {
     if (kampagneId) return kampagneId;
-    const sb = benoetigeSupabase();
+    const sb = requireSupabase();
     const { data, error } = await sb
       .from("campaigns")
       .select("id")
@@ -127,7 +121,7 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
   }
 
   async function ladeKarteRoh(kind: KartenArt) {
-    const sb = benoetigeSupabase();
+    const sb = requireSupabase();
     const cid = await holeKampagne();
     const { data, error } = await sb
       .from("maps")
@@ -141,7 +135,7 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
   }
 
   async function schreibeKarte(kind: KartenArt, daten: unknown, bgPfad: string | null) {
-    const sb = benoetigeSupabase();
+    const sb = requireSupabase();
     const cid = await holeKampagne();
     const { error } = await sb
       .from("maps")
@@ -156,7 +150,7 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
     modus: "cloud",
 
     async ladeAlles(): Promise<KampagnenDaten> {
-      const sb = benoetigeSupabase();
+      const sb = requireSupabase();
       const cid = await holeKampagne();
 
       const [charsRes, crewRes, trackerRes, drawingRes, detailRes, logRes] = await Promise.all([
@@ -176,7 +170,7 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
       const chars = (charsRes.data as CharakterZeile[] | null ?? []).map(zuCharakter);
 
       const crewZeile = crewRes.data as Record<string, unknown> | null;
-      const crew = normalisiereCrew(crewZeile ? {
+      const crew = normalizeCrew(crewZeile ? {
         name: crewZeile.name,
         jollyRoger: crewZeile.jolly_roger_path,
         schiffName: crewZeile.schiff_name,
@@ -185,12 +179,12 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
       } : null);
 
       const trackerDaten = (trackerRes?.data ?? {}) as Record<string, unknown>;
-      const karte = normalisiereKarte({ ...trackerDaten, bg: trackerRes?.bg_path ?? null });
-      const zeichnung = normalisiereZeichnung(drawingRes?.data ?? null);
-      const schauplatz = normalisiereSchauplatz(detailRes?.data ?? null);
+      const karte = normalizeMap({ ...trackerDaten, bg: trackerRes?.bg_path ?? null });
+      const zeichnung = normalizeDrawing(drawingRes?.data ?? null);
+      const schauplatz = normalizeScene(detailRes?.data ?? null);
 
       const logZeile = logRes.data as Record<string, unknown> | null;
-      const logbuch = normalisiereLogbuch(logZeile
+      const logbuch = normalizeLogbook(logZeile
         ? { notizen: logZeile.notizen, quests: logZeile.quests }
         : null);
 
@@ -198,7 +192,7 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
     },
 
     async speichereCharaktere(chars: Charakter[]) {
-      const sb = benoetigeSupabase();
+      const sb = requireSupabase();
       const cid = await holeKampagne();
       if (!chars.length) return;
       const zeilen = chars.map((c, i) => zuZeile(userId, cid, c, i));
@@ -207,13 +201,13 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
     },
 
     async loescheCharakter(id: string) {
-      const sb = benoetigeSupabase();
+      const sb = requireSupabase();
       const { error } = await sb.from("characters").delete().eq("id", id).eq("owner", userId);
       if (error) throw error;
     },
 
     async speichereCrew(crew: Crew) {
-      const sb = benoetigeSupabase();
+      const sb = requireSupabase();
       const cid = await holeKampagne();
       const { error } = await sb.from("crews").upsert({
         owner: userId,
@@ -240,7 +234,7 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
     },
 
     async speichereLogbuch(l: LogbuchZustand) {
-      const sb = benoetigeSupabase();
+      const sb = requireSupabase();
       const cid = await holeKampagne();
       const { error } = await sb.from("logbooks").upsert({
         owner: userId,
@@ -256,11 +250,11 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
     // Storage-Policy zu.
     async bildSpeichern(datenUrl: string): Promise<string> {
       if (!datenUrl.startsWith("data:")) return datenUrl;
-      const sb = benoetigeSupabase();
-      const pfad = `${userId}/${neueUuid()}.jpg`;
-      const blob = await datenUrlZuBlob(datenUrl);
+      const sb = requireSupabase();
+      const pfad = `${userId}/${newUuid()}.jpg`;
+      const blob = await dataUrlToBlob(datenUrl);
       const { error } = await sb.storage
-        .from(BILD_BUCKET)
+        .from(IMAGE_BUCKET)
         .upload(pfad, blob, { contentType: "image/jpeg", upsert: false });
       if (error) throw error;
       return pfad;
@@ -270,8 +264,8 @@ export function erstelleCloudSpeicher(userId: string): Speicher {
       if (!wert) return null;
       // Data-URLs und fertige Links unverändert durchreichen
       if (wert.startsWith("data:") || wert.startsWith("http")) return wert;
-      const sb = benoetigeSupabase();
-      return sb.storage.from(BILD_BUCKET).getPublicUrl(wert).data.publicUrl;
+      const sb = requireSupabase();
+      return sb.storage.from(IMAGE_BUCKET).getPublicUrl(wert).data.publicUrl;
     },
   };
 }

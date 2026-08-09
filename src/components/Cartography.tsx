@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { BauwerkArt, TerrainArt, Zeichenraster } from "../types";
-import { neueId } from "../lib/spiel";
-import { useKampagne } from "../state/KampagneContext";
-import { useSitzung } from "../state/SitzungContext";
+import { newId } from "../lib/game";
+import { useCampaign } from "../state/CampaignContext";
+import { useSession } from "../state/SessionContext";
 
 export const TERRAIN_COLORS: Record<TerrainArt, string> = {
   wasser: "#2b6d8f", strand: "#e3d29a", gruen: "#5a9e52",
@@ -29,9 +29,9 @@ const leeresRaster = (): Zeichenraster => ({
 
 type Malmodus = "terrain" | "gebaeude" | "radierer";
 
-export function Kartografie() {
-  const { zeichnung, setZeichnung, setKarte, speicher, jetztSpeichern, zeigeToast } = useKampagne();
-  const { setTab } = useSitzung();
+export function Cartography() {
+  const { drawing, setDrawing, setMap, storage, saveNow, showToast } = useCampaign();
+  const { setTab } = useSession();
 
   const [terrain, setTerrain] = useState<TerrainArt>("gruen");
   const [bauwerk, setBauwerk] = useState<BauwerkArt>("haus");
@@ -39,7 +39,7 @@ export function Kartografie() {
   const [modus, setModus] = useState<Malmodus>("terrain");
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const gridRef = useRef<Zeichenraster>(zeichnung.grid ?? leeresRaster());
+  const gridRef = useRef<Zeichenraster>(drawing.grid ?? leeresRaster());
   const malend = useRef(false);
 
   /* ---- Raster aufs Canvas zeichnen ---- */
@@ -60,15 +60,15 @@ export function Kartografie() {
 
   // Nach dem Laden (oder nach einem Commit) das Raster übernehmen und neu zeichnen.
   useEffect(() => {
-    if (zeichnung.grid && zeichnung.grid !== gridRef.current) gridRef.current = zeichnung.grid;
+    if (drawing.grid && drawing.grid !== gridRef.current) gridRef.current = drawing.grid;
     render(gridRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zeichnung.grid]);
+  }, [drawing.grid]);
 
   /** Gemalte Zellen in den Kampagnen-Zustand übernehmen (löst das Speichern aus). */
   function commit() {
     const g = gridRef.current;
-    setZeichnung(z => ({ ...z, grid: { ...g, cells: [...g.cells] } }));
+    setDrawing(z => ({ ...z, grid: { ...g, cells: [...g.cells] } }));
   }
 
   function paintAt(clientX: number, clientY: number) {
@@ -101,7 +101,7 @@ export function Kartografie() {
       const rect = cv.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 100;
       const y = ((e.clientY - rect.top) / rect.height) * 100;
-      setZeichnung(z => ({ ...z, buildings: [...z.buildings, { id: neueId("b"), kind: bauwerk, x, y }] }));
+      setDrawing(z => ({ ...z, buildings: [...z.buildings, { id: newId("b"), kind: bauwerk, x, y }] }));
       return;
     }
     e.preventDefault();
@@ -125,13 +125,13 @@ export function Kartografie() {
     const g = leeresRaster();
     gridRef.current = g;
     render(g);
-    setZeichnung({ grid: { ...g, cells: [...g.cells] }, buildings: [] });
+    setDrawing({ grid: { ...g, cells: [...g.cells] }, buildings: [] });
   }
 
   /** Zeichnung als Bild-Hintergrund in den Figuren-Tracker übernehmen. */
   async function alsKarteUebernehmen() {
     const cv = canvasRef.current;
-    if (!cv || !zeichnung.grid) { zeigeToast("Erst etwas zeichnen"); return; }
+    if (!cv || !drawing.grid) { showToast("Erst etwas zeichnen"); return; }
     // Gebäude aufs Bild brennen
     const out = document.createElement("canvas");
     out.width = cv.width; out.height = cv.height;
@@ -141,17 +141,17 @@ export function Kartografie() {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `${Math.round(out.width / 28)}px serif`;
-    for (const b of zeichnung.buildings) {
+    for (const b of drawing.buildings) {
       const icon = (BUILDINGS[b.kind] ?? BUILDINGS.haus).icon;
       ctx.fillText(icon, (b.x / 100) * out.width, (b.y / 100) * out.height);
     }
     try {
-      const wert = await speicher.bildSpeichern(out.toDataURL("image/jpeg", 0.85));
-      setKarte(k => ({ ...k, bg: wert }));
+      const wert = await storage.bildSpeichern(out.toDataURL("image/jpeg", 0.85));
+      setMap(k => ({ ...k, bg: wert }));
       setTab("karte");
-      zeigeToast("Zeichnung als Karte übernommen ⚓");
+      showToast("Zeichnung als Karte übernommen ⚓");
     } catch (err) {
-      zeigeToast(err instanceof Error ? err.message : "Übernahme fehlgeschlagen");
+      showToast(err instanceof Error ? err.message : "Übernahme fehlgeschlagen");
     }
   }
 
@@ -201,11 +201,11 @@ export function Kartografie() {
             onPointerLeave={onPointerUp}
             onPointerCancel={onPointerUp}
           />
-          {zeichnung.buildings.map(b => (
+          {drawing.buildings.map(b => (
             <div key={b.id} className="bld-marker" style={{ left: b.x + "%", top: b.y + "%" }}>
               <span className="bld-icon">{(BUILDINGS[b.kind] ?? BUILDINGS.haus).icon}</span>
               <button className="bld-del" aria-label="Bauwerk entfernen"
-                onClick={() => setZeichnung(z => ({ ...z, buildings: z.buildings.filter(x => x.id !== b.id) }))}>✕</button>
+                onClick={() => setDrawing(z => ({ ...z, buildings: z.buildings.filter(x => x.id !== b.id) }))}>✕</button>
             </div>
           ))}
         </div>
@@ -220,7 +220,7 @@ export function Kartografie() {
           </span>
           <span style={{ flex: 1 }} />
           <button className="gla-btn" onClick={leeren}>Leeren</button>
-          <button className="gla-btn" onClick={() => jetztSpeichern("zeichnung")}>Speichern</button>
+          <button className="gla-btn" onClick={() => saveNow("drawing")}>Speichern</button>
           <button className="gla-btn primary" onClick={alsKarteUebernehmen}>Als Karte übernehmen →</button>
         </div>
       </div>

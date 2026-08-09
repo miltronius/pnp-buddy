@@ -1,13 +1,13 @@
 import { useState } from "react";
 import type { Quest } from "../types";
-import { neueId } from "../lib/spiel";
-import { useKampagne } from "../state/KampagneContext";
+import { newId } from "../lib/game";
+import { useCampaign } from "../state/CampaignContext";
 
-export function Logbuch() {
-  const { logbuch, setLogbuch, jetztSpeichern } = useKampagne();
+export function Logbook() {
+  const { logbook, setLogbook, saveNow } = useCampaign();
   const [neueQuest, setNeueQuest] = useState("");
 
-  const quests = logbuch.quests;
+  const quests = logbook.quests;
 
   // Offene zuerst, sonst Eintragsreihenfolge
   const sortiert = quests
@@ -15,12 +15,12 @@ export function Logbuch() {
     .sort((a, b) => (a.erledigt !== b.erledigt ? (a.erledigt ? 1 : -1) : a._i - b._i));
 
   const setQuests = (f: (qs: Quest[]) => Quest[]) =>
-    setLogbuch(l => ({ ...l, quests: f(l.quests) }));
+    setLogbook(l => ({ ...l, quests: f(l.quests) }));
 
   function addQuest() {
     const t = neueQuest.trim();
     if (!t) return;
-    setQuests(qs => [...qs, { id: neueId("q"), titel: t.slice(0, 120), notiz: "", erledigt: false }]);
+    setQuests(qs => [...qs, { id: newId("q"), titel: t.slice(0, 120), notiz: "", erledigt: false }]);
     setNeueQuest("");
   }
 
@@ -73,14 +73,14 @@ export function Logbuch() {
 
           <div className="notes-col">
             <h3 className="sheet-title" style={{ margin: "0 0 8px", textAlign: "left", fontSize: 22 }}>Notizen</h3>
-            <textarea className="notes-area" value={logbuch.notizen}
+            <textarea className="notes-area" value={logbook.notizen}
               placeholder="Freie Notizen der Spielleitung: NPCs, Geheimnisse, lose Fäden, Weltgeschehen…"
-              onChange={e => setLogbuch(l => ({ ...l, notizen: e.target.value }))} />
+              onChange={e => setLogbook(l => ({ ...l, notizen: e.target.value }))} />
           </div>
         </div>
 
         <div className="save-bar" style={{ marginTop: 14 }}>
-          <button className="gla-btn" onClick={() => jetztSpeichern("logbuch")}>Logbuch speichern</button>
+          <button className="gla-btn" onClick={() => saveNow("logbook")}>Logbuch speichern</button>
         </div>
       </div>
     </div>

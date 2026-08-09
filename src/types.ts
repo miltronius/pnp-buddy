@@ -250,6 +250,8 @@ export type TabName =
   | "bogen" | "wuerfel" | "kampf" | "karte"
   | "zeichnen" | "detail" | "notizen" | "crew";
 
+export type SystemName = "pnp" | "dnd";
+
 /* ---------- Gesamtzustand einer Kampagne ---------- */
 
 export interface KampagnenDaten {

@@ -954,6 +954,28 @@ body { margin: 0; }
   font-style: normal; font-size: 12px; color: var(--gold);
 }
 
+/* ── System-Umschalter (PnP / D&D) ── */
+.system-tabs {
+  display: flex; justify-content: center; gap: 0;
+  margin: 16px auto 0; width: fit-content;
+  border: 1px solid rgba(231,211,168,.3);
+  border-radius: 6px; overflow: hidden;
+}
+.system-tab {
+  font-family: 'Pirata One', Georgia, serif;
+  font-size: 17px; letter-spacing: 1px;
+  padding: 8px 30px;
+  background: transparent; color: rgba(231,211,168,.65);
+  border: none; border-right: 1px solid rgba(231,211,168,.3);
+  cursor: pointer; transition: all .15s ease;
+}
+.system-tab:last-child { border-right: none; }
+.system-tab:hover { color: var(--parchment); background: rgba(255,255,255,.05); }
+.system-tab.active {
+  background: var(--parchment); color: var(--ink);
+  font-weight: bold;
+}
+
 .gla-topbar {
   display: flex; justify-content: flex-end; align-items: center; gap: 12px;
   padding: 10px 16px 0; color: rgba(231,211,168,.8); font-size: 13px;
@@ -989,3 +1011,314 @@ body { margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   .lade-schirm .anker { animation: none; }
 }
+
+/* ============================================================
+   D&D-Modul
+   ============================================================ */
+
+/* Konzentrations-Topbar (persistent, über den Tabs) */
+.dnd-konz-topbar {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(122, 74, 158, .25); border-bottom: 1px solid rgba(122, 74, 158, .5);
+  color: var(--parchment); font-size: 14px; padding: 7px 16px;
+}
+
+/* ── Bogen ── */
+.dnd-info-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 18px;
+}
+@media (max-width: 640px) { .dnd-info-grid { grid-template-columns: 1fr 1fr; } }
+
+.dnd-kampf-row {
+  display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin: 4px 0;
+}
+.dnd-kampf-box {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 90px;
+}
+.dnd-kampf-label {
+  font-family: 'Pirata One', Georgia, serif; font-size: 13px; opacity: .75; letter-spacing: .5px;
+}
+.dnd-kampf-input {
+  width: 64px; text-align: center; font-size: 22px; font-weight: bold;
+  background: transparent; border: none; border-bottom: 2px solid rgba(43,32,20,.4);
+  font-family: 'IM Fell English', Georgia, serif; color: var(--ink); padding: 2px 0;
+}
+.dnd-kampf-input:focus { outline: none; border-bottom-color: var(--red); }
+.dnd-kampf-input-small {
+  width: 48px; text-align: center; font-size: 15px;
+  background: transparent; border: none; border-bottom: 1px solid rgba(43,32,20,.3);
+  font-family: 'IM Fell English', Georgia, serif; color: var(--ink);
+}
+.dnd-kampf-input-small:focus { outline: none; border-bottom-color: var(--red); }
+.dnd-kampf-wert {
+  font-size: 24px; font-weight: bold; font-family: 'Pirata One', Georgia, serif;
+}
+.dnd-hp-row {
+  display: flex; align-items: center; gap: 4px;
+}
+.dnd-hp-sep { font-size: 14px; opacity: .6; display: flex; align-items: center; gap: 3px; }
+.dnd-hp-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: transparent; border: 1px solid rgba(43,32,20,.4); cursor: pointer;
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+  color: var(--ink); transition: all .12s;
+}
+.dnd-hp-btn:hover { background: var(--ink); color: var(--parchment); }
+
+.dnd-attr-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;
+}
+@media (max-width: 600px) { .dnd-attr-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.dnd-attr-box {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 1px solid rgba(43,32,20,.2); border-radius: 6px; padding: 8px 4px;
+  background: rgba(43,32,20,.04);
+}
+.dnd-attr-name {
+  font-family: 'Pirata One', Georgia, serif; font-size: 12px; letter-spacing: 1px; opacity: .75;
+}
+.dnd-attr-input {
+  width: 52px; text-align: center; font-size: 22px; font-weight: bold;
+  background: transparent; border: none;
+  font-family: 'IM Fell English', Georgia, serif; color: var(--ink);
+}
+.dnd-attr-input:focus { outline: none; }
+.dnd-attr-mod {
+  font-size: 16px; font-weight: bold;
+  background: var(--ink); color: var(--parchment);
+  border-radius: 50%; width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.dnd-saves-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px;
+}
+@media (max-width: 480px) { .dnd-saves-grid { grid-template-columns: 1fr 1fr; } }
+
+.dnd-save-row {
+  display: flex; align-items: center; gap: 7px; cursor: pointer;
+  padding: 4px 6px; border-radius: 4px; transition: background .1s;
+}
+.dnd-save-row:hover { background: rgba(43,32,20,.06); }
+.dnd-profi-dot {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--ink-soft); background: transparent; transition: background .12s;
+}
+.dnd-profi-dot.active { background: var(--ink); border-color: var(--ink); }
+.dnd-save-name { flex: 1; font-size: 14px; }
+.dnd-save-mod { font-weight: bold; font-size: 14px; min-width: 28px; text-align: right; }
+
+/* ── Fähigkeiten ── */
+.dnd-skill-legende {
+  display: flex; gap: 16px; font-size: 12px; opacity: .65; font-style: italic; margin-bottom: 10px;
+}
+.dnd-skill-list { display: flex; flex-direction: column; gap: 2px; }
+.dnd-skill-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 6px; border-radius: 4px; transition: background .1s;
+}
+.dnd-skill-row:hover { background: rgba(43,32,20,.05); }
+.dnd-profi-btn, .dnd-exp-btn {
+  width: 22px; height: 22px; border-radius: 4px; border: 1px solid rgba(43,32,20,.35);
+  background: transparent; cursor: pointer; font-size: 11px; color: rgba(43,32,20,.4);
+  display: flex; align-items: center; justify-content: center; transition: all .12s; flex-shrink: 0;
+}
+.dnd-profi-btn.active { background: var(--ink); color: var(--parchment); border-color: var(--ink); }
+.dnd-exp-btn.active { background: var(--gold); color: #fff; border-color: var(--gold); }
+.dnd-exp-btn.gesperrt { opacity: .3; cursor: not-allowed; }
+.dnd-skill-name { flex: 1; font-size: 15px; }
+.dnd-skill-attr { font-size: 12px; opacity: .55; width: 38px; }
+.dnd-skill-mod { font-weight: bold; font-size: 15px; min-width: 32px; text-align: right; }
+
+/* ── Gemeinsame Elemente ── */
+.dnd-section-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+}
+.dnd-filter-leiste {
+  display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0;
+}
+.dnd-filter-btn {
+  font-family: 'Pirata One', Georgia, serif; font-size: 14px; letter-spacing: .5px;
+  padding: 4px 12px; border: 1px solid rgba(43,32,20,.35); border-radius: 20px;
+  background: transparent; color: var(--ink); cursor: pointer; transition: all .12s;
+}
+.dnd-filter-btn:hover { border-color: var(--ink); }
+.dnd-filter-btn.active { background: var(--ink); color: var(--parchment); border-color: var(--ink); }
+.dnd-form-box {
+  background: rgba(43,32,20,.06); border: 1px solid rgba(43,32,20,.18);
+  border-radius: 6px; padding: 16px; margin-bottom: 14px;
+}
+.dnd-form-actions { display: flex; gap: 8px; margin-top: 12px; }
+.dnd-herkunft-badge {
+  display: inline-block; color: #fff; font-size: 11px; font-weight: bold;
+  padding: 1px 7px; border-radius: 10px; letter-spacing: .5px; flex-shrink: 0;
+}
+.dnd-icon-btn {
+  background: transparent; border: 1px solid rgba(43,32,20,.3); border-radius: 4px;
+  padding: 2px 7px; cursor: pointer; font-size: 13px; color: var(--ink);
+  transition: all .12s; flex-shrink: 0;
+}
+.dnd-icon-btn:hover { background: var(--ink); color: var(--parchment); }
+.dnd-icon-btn.danger:hover { background: var(--red); border-color: var(--red); color: #fff; }
+.dnd-leer-hinweis { font-style: italic; opacity: .5; font-size: 14px; text-align: center; padding: 16px 0; }
+
+/* ── Merkmale ── */
+.dnd-merkmal-liste { display: flex; flex-direction: column; gap: 6px; }
+.dnd-merkmal-item {
+  border: 1px solid rgba(43,32,20,.18); border-radius: 6px; overflow: hidden;
+}
+.dnd-merkmal-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; background: rgba(43,32,20,.04);
+}
+.dnd-merkmal-name-btn {
+  flex: 1; background: none; border: none; cursor: pointer;
+  text-align: left; font-family: 'IM Fell English', Georgia, serif; color: var(--ink);
+  display: flex; align-items: center; gap: 8px;
+}
+.dnd-merkmal-aktionen { display: flex; gap: 5px; flex-shrink: 0; }
+.dnd-merkmal-pfeil { opacity: .5; font-size: 11px; }
+.dnd-merkmal-text {
+  padding: 8px 12px; font-size: 14px; line-height: 1.55;
+  border-top: 1px solid rgba(43,32,20,.1); white-space: pre-wrap;
+}
+
+/* ── Zauber & Slots ── */
+.dnd-konz-banner {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(122, 74, 158, .15); border: 1px solid rgba(122, 74, 158, .35);
+  border-radius: 6px; padding: 8px 12px; margin-bottom: 12px;
+  color: var(--ink); font-size: 14px;
+}
+.dnd-slot-konfig {
+  display: flex; gap: 12px; flex-wrap: wrap; padding: 10px 12px;
+  background: rgba(43,32,20,.05); border-radius: 6px; margin-bottom: 10px;
+}
+.dnd-slot-konfig-zeile { display: flex; align-items: center; gap: 5px; font-size: 13px; }
+.dnd-slot-max-input {
+  width: 38px; text-align: center; padding: 2px 4px;
+  background: transparent; border: 1px solid rgba(43,32,20,.4); border-radius: 4px;
+  font-family: 'IM Fell English', Georgia, serif; font-size: 14px; color: var(--ink);
+}
+.dnd-slot-bereich { display: flex; flex-direction: column; gap: 8px; margin: 6px 0; }
+.dnd-slot-reihe { display: flex; align-items: center; gap: 10px; }
+.dnd-slot-label {
+  font-family: 'Pirata One', Georgia, serif; font-size: 14px; width: 58px; flex-shrink: 0;
+}
+.dnd-slot-pips { display: flex; gap: 5px; flex-wrap: wrap; }
+.dnd-slot-pip {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid rgba(43,32,20,.4); cursor: pointer; transition: all .12s;
+  background: transparent;
+}
+.dnd-slot-pip.voll { background: var(--sea); border-color: var(--sea); }
+.dnd-slot-pip.voll.ressource { background: #7a4a9e; border-color: #7a4a9e; }
+.dnd-slot-pip.leer { background: rgba(43,32,20,.08); }
+.dnd-slot-pip:hover { transform: scale(1.15); }
+.dnd-slot-count { font-size: 13px; opacity: .65; min-width: 32px; }
+.dnd-rast-btn {
+  font-family: 'Pirata One', Georgia, serif; font-size: 14px; letter-spacing: .5px;
+  padding: 5px 14px; border-radius: 4px; cursor: pointer; border: 1px solid; transition: all .12s;
+}
+.dnd-rast-btn.long {
+  background: rgba(20, 34, 46, .15); border-color: var(--sea); color: var(--sea);
+}
+.dnd-rast-btn.long:hover { background: var(--sea); color: var(--parchment); }
+.dnd-rast-btn.short {
+  background: rgba(43,32,20,.08); border-color: rgba(43,32,20,.4); color: var(--ink);
+}
+.dnd-rast-btn.short:hover { background: var(--ink); color: var(--parchment); }
+.dnd-ressourcen-liste { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.dnd-ressource-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.dnd-ressource-name { font-size: 14px; min-width: 120px; }
+.dnd-res-aufladung {
+  font-size: 11px; font-weight: bold; color: #fff;
+  background: rgba(43,32,20,.5); border-radius: 10px; padding: 1px 7px; flex-shrink: 0;
+}
+
+/* Zauberliste */
+.dnd-zauber-form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px;
+}
+@media (max-width: 540px) { .dnd-zauber-form-grid { grid-template-columns: 1fr; } }
+.dnd-zauber-liste { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.dnd-zauber-item {
+  border: 1px solid rgba(43,32,20,.18); border-radius: 6px; overflow: hidden;
+}
+.dnd-zauber-item.konzentriert {
+  border-color: rgba(122, 74, 158, .5);
+  box-shadow: 0 0 0 1px rgba(122, 74, 158, .2);
+}
+.dnd-zauber-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; background: rgba(43,32,20,.04);
+}
+.dnd-zauber-info { display: flex; align-items: center; gap: 6px; flex: 1; flex-wrap: wrap; }
+.dnd-zauber-name-btn {
+  background: none; border: none; cursor: pointer;
+  font-family: 'IM Fell English', Georgia, serif; color: var(--ink);
+  display: flex; align-items: center; gap: 6px; text-align: left;
+}
+.dnd-zauber-meta-inline { font-size: 12px; opacity: .6; }
+.dnd-konz-tag {
+  background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 2px;
+  opacity: .5; transition: opacity .12s;
+}
+.dnd-konz-tag:hover { opacity: 1; }
+.dnd-konz-tag.aktiv { opacity: 1; }
+.dnd-checkbox-label {
+  display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;
+}
+
+/* ── Datenbank-Suche ── */
+.dnd-db-info { font-family: 'IM Fell English', Georgia, serif; font-size: 13px; opacity: .5; font-weight: normal; }
+.dnd-db-suche { margin: 6px 0 12px; }
+.dnd-db-input { border-bottom: 1px solid rgba(43,32,20,.4) !important; }
+.dnd-db-ergebnisse {
+  border: 1px solid rgba(43,32,20,.2); border-radius: 6px; margin-top: 4px;
+  max-height: 280px; overflow-y: auto;
+  background: rgba(255,255,255,.5);
+}
+.dnd-db-treffer {
+  display: flex; justify-content: space-between; align-items: baseline;
+  width: 100%; text-align: left; padding: 7px 12px; border: none;
+  border-bottom: 1px solid rgba(43,32,20,.08);
+  background: transparent; cursor: pointer; font-family: 'IM Fell English', Georgia, serif;
+  color: var(--ink); gap: 10px; transition: background .1s;
+}
+.dnd-db-treffer:last-child { border-bottom: none; }
+.dnd-db-treffer:hover { background: rgba(43,32,20,.07); }
+.dnd-db-treffer-name { font-size: 15px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.dnd-db-treffer-en { font-size: 12px; opacity: .55; }
+.dnd-db-treffer-meta { font-size: 12px; opacity: .6; flex-shrink: 0; }
+
+.dnd-homebrew-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-family: 'IM Fell English', Georgia, serif;
+  background: #6b3a1f;
+  color: #e7d3a8;
+  border: 1px solid #a0582a;
+  border-radius: 3px;
+  padding: 1px 5px;
+  vertical-align: middle;
+  letter-spacing: .04em;
+}
+
+.dnd-srd-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-family: 'IM Fell English', Georgia, serif;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  padding: 1px 6px;
+  text-decoration: none;
+  opacity: .75;
+  transition: opacity .15s;
+  white-space: nowrap;
+}
+.dnd-srd-link:hover { opacity: 1; text-decoration: none; }

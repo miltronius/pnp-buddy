@@ -1,42 +1,42 @@
 import { useRef, type ChangeEvent, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { Charakter, MapToken, TokenArt } from "../types";
-import { karteSkalieren } from "../lib/bilder";
-import { neueId } from "../lib/spiel";
-import { useKampagne } from "../state/KampagneContext";
-import { useSitzung } from "../state/SitzungContext";
+import { scaleMapImage } from "../lib/images";
+import { newId } from "../lib/game";
+import { useCampaign } from "../state/CampaignContext";
+import { useSession } from "../state/SessionContext";
 
 const TOKEN_COLORS: Record<TokenArt, string> = {
   crew: "#2f6d8a", gegner: "#8b2e1f", insel: "#2f7d4a", schiff: "#7a5a1e", ziel: "#8a3b8f",
 };
 
-export function KartenTracker() {
-  const { chars, karte, setKarte, speicher, jetztSpeichern, zeigeToast } = useKampagne();
-  const { fighters } = useSitzung();
+export function MapTracker() {
+  const { chars, map, setMap, storage, saveNow, showToast } = useCampaign();
+  const { fighters } = useSession();
 
   const mapViewRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ id: string; pointerId: number } | null>(null);
 
-  const bgUrl = speicher.bildUrl(karte.bg);
+  const bgUrl = storage.bildUrl(map.bg);
 
   async function onMapUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     try {
-      const datenUrl = await karteSkalieren(file);
-      const wert = await speicher.bildSpeichern(datenUrl);
-      setKarte(k => ({ ...k, bg: wert }));
-      zeigeToast("Karte geladen ⚓");
+      const datenUrl = await scaleMapImage(file);
+      const wert = await storage.bildSpeichern(datenUrl);
+      setMap(k => ({ ...k, bg: wert }));
+      showToast("Karte geladen ⚓");
     } catch (err) {
-      zeigeToast(err instanceof Error ? err.message : "Bild konnte nicht geladen werden");
+      showToast(err instanceof Error ? err.message : "Bild konnte nicht geladen werden");
     }
   }
 
   function addMapToken(kind: TokenArt, opts: Partial<MapToken> = {}) {
-    setKarte(k => ({
+    setMap(k => ({
       ...k,
       tokens: [...k.tokens, {
-        id: neueId("t"),
+        id: newId("t"),
         label: opts.label ?? "",
         kind,
         color: opts.color ?? TOKEN_COLORS[kind] ?? "#555",
@@ -48,7 +48,7 @@ export function KartenTracker() {
   }
 
   function addCrewToken(c: Charakter) {
-    if (karte.tokens.some(t => t.ref === "char:" + c.id)) { zeigeToast("Schon auf der Karte"); return; }
+    if (map.tokens.some(t => t.ref === "char:" + c.id)) { showToast("Schon auf der Karte"); return; }
     addMapToken("crew", {
       label: (c.name || "?").slice(0, 12),
       ref: "char:" + c.id,
@@ -59,13 +59,13 @@ export function KartenTracker() {
 
   function addFightersToMap() {
     const gegner = fighters.filter(f => f.seite === "gegner" && !f.tot);
-    if (!gegner.length) { zeigeToast("Keine lebenden Gegner im Kampf"); return; }
-    setKarte(k => {
+    if (!gegner.length) { showToast("Keine lebenden Gegner im Kampf"); return; }
+    setMap(k => {
       const vorhanden = new Set(k.tokens.map(t => t.ref));
       const neue: MapToken[] = gegner
         .filter(f => !vorhanden.has("fighter:" + f.id))
         .map(f => ({
-          id: neueId("t"),
+          id: newId("t"),
           label: (f.name || "Gegner").slice(0, 12),
           kind: "gegner" as const,
           color: TOKEN_COLORS.gegner,
@@ -78,10 +78,10 @@ export function KartenTracker() {
   }
 
   const patchToken = (id: string, p: Partial<MapToken>) =>
-    setKarte(k => ({ ...k, tokens: k.tokens.map(t => (t.id === id ? { ...t, ...p } : t)) }));
+    setMap(k => ({ ...k, tokens: k.tokens.map(t => (t.id === id ? { ...t, ...p } : t)) }));
 
   const delToken = (id: string) =>
-    setKarte(k => ({ ...k, tokens: k.tokens.filter(t => t.id !== id) }));
+    setMap(k => ({ ...k, tokens: k.tokens.filter(t => t.id !== id) }));
 
   /* ---- Ziehen: Position in Prozent der Kartenfläche ---- */
   function tokenPointerDown(e: ReactPointerEvent<HTMLDivElement>, t: MapToken) {
@@ -116,10 +116,10 @@ export function KartenTracker() {
             🖼 Bild laden
             <input type="file" accept="image/*" onChange={onMapUpload} style={{ display: "none" }} />
           </label>
-          {karte.bg && <button className="map-btn" onClick={() => setKarte(k => ({ ...k, bg: null }))}>Bild entfernen</button>}
-          <button className={`map-btn ${karte.gridOn ? "on" : ""}`}
-            onClick={() => setKarte(k => ({ ...k, gridOn: !k.gridOn }))}>
-            {karte.gridOn ? "▦ Raster an" : "▦ Raster aus"}
+          {map.bg && <button className="map-btn" onClick={() => setMap(k => ({ ...k, bg: null }))}>Bild entfernen</button>}
+          <button className={`map-btn ${map.gridOn ? "on" : ""}`}
+            onClick={() => setMap(k => ({ ...k, gridOn: !k.gridOn }))}>
+            {map.gridOn ? "▦ Raster an" : "▦ Raster aus"}
           </button>
           <span className="map-sep" />
           {chars.map(c => (
@@ -132,27 +132,27 @@ export function KartenTracker() {
           <button className="map-chip schiff" onClick={() => addMapToken("schiff", { label: "Schiff" })}>+ Schiff</button>
           <button className="map-chip ziel" onClick={() => addMapToken("ziel", { label: "Ziel" })}>+ Ziel</button>
           <span className="map-sep" />
-          {karte.tokens.length > 0 && (
-            <button className="map-btn" onClick={() => setKarte(k => ({ ...k, tokens: [] }))}>Marker leeren</button>
+          {map.tokens.length > 0 && (
+            <button className="map-btn" onClick={() => setMap(k => ({ ...k, tokens: [] }))}>Marker leeren</button>
           )}
-          <button className="map-btn save" onClick={() => jetztSpeichern("karte")}>Karte speichern</button>
+          <button className="map-btn save" onClick={() => saveNow("map")}>Karte speichern</button>
         </div>
 
         <div
-          className={`map-view ${karte.gridOn ? "grid" : ""} ${bgUrl ? "has-bg" : "sea"}`}
+          className={`map-view ${map.gridOn ? "grid" : ""} ${bgUrl ? "has-bg" : "sea"}`}
           ref={mapViewRef}
           style={bgUrl ? { backgroundImage: `url(${bgUrl})` } : undefined}
           onPointerMove={tokenPointerMove}
           onPointerUp={tokenPointerUp}
           onPointerCancel={tokenPointerUp}
         >
-          {!bgUrl && karte.tokens.length === 0 && (
+          {!bgUrl && map.tokens.length === 0 && (
             <div className="map-hint">
               Lade ein Kartenbild oder nutze das Seekarten-Raster.<br />
               Figuren oben hinzufügen und frei verschieben.
             </div>
           )}
-          {karte.tokens.map(t => (
+          {map.tokens.map(t => (
             <div
               key={t.id}
               className={`token ${t.kind}`}
@@ -169,10 +169,10 @@ export function KartenTracker() {
           ))}
         </div>
 
-        {karte.tokens.length > 0 && (
+        {map.tokens.length > 0 && (
           <div className="token-editor">
             <h3 className="token-editor-title">Marker beschriften</h3>
-            {karte.tokens.map(t => (
+            {map.tokens.map(t => (
               <div className="token-edit-row" key={t.id}>
                 <span className="token-swatch" style={{ background: t.color }} />
                 <input className="gla-input" value={t.label} placeholder={t.kind}

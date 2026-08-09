@@ -6,7 +6,7 @@
    ============================================================ */
 
 import { ATTRIBUTE, type Charakter } from "../types";
-import { ausgleich, mitVorzeichen } from "./spiel";
+import { balanceValue, withSign } from "./game";
 
 const esc = (t: unknown): string =>
   String(t == null ? "" : t)
@@ -20,7 +20,7 @@ export function exportPdf(a: Charakter, zeigeToast: (t: string) => void): void {
   const attrRows = ATTRIBUTE.map(name =>
     `<div class="p-att"><span class="p-att-name">${esc(name)}</span>` +
     `<span class="p-att-val">${esc(a.attribute[name])}</span>` +
-    `<span class="p-att-mod">${mitVorzeichen(ausgleich(a.attribute[name]))}</span></div>`,
+    `<span class="p-att-mod">${withSign(balanceValue(a.attribute[name]))}</span></div>`,
   ).join("");
 
   const items = (a.habUndGut || []).filter(it => (it.text || "").trim());

@@ -11,9 +11,9 @@ const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 /** true, sobald URL und Publishable Key vorhanden sind. */
-export const istCloudKonfiguriert = Boolean(url && key);
+export const isCloudConfigured = Boolean(url && key);
 
-export const supabase: SupabaseClient | null = istCloudKonfiguriert
+export const supabase: SupabaseClient | null = isCloudConfigured
   ? createClient(url as string, key as string, {
       auth: {
         persistSession: true,
@@ -24,7 +24,7 @@ export const supabase: SupabaseClient | null = istCloudKonfiguriert
   : null;
 
 /** Client holen oder verständlich scheitern. */
-export function benoetigeSupabase(): SupabaseClient {
+export function requireSupabase(): SupabaseClient {
   if (!supabase) {
     throw new Error(
       "Supabase ist nicht konfiguriert — VITE_SUPABASE_URL und " +
@@ -35,4 +35,4 @@ export function benoetigeSupabase(): SupabaseClient {
 }
 
 /** Name des Storage-Buckets für Porträts, Flaggen und Kartenbilder. */
-export const BILD_BUCKET = "bilder";
+export const IMAGE_BUCKET = "bilder";

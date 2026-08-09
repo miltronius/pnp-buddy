@@ -1,17 +1,24 @@
-import type { TabName } from "../types";
-import { abmelden } from "../hooks/useAuth";
-import { useKampagne } from "../state/KampagneContext";
-import { useSitzung } from "../state/SitzungContext";
-import { Charakterbogen } from "./Charakterbogen";
-import { KampfTracker } from "./KampfTracker";
-import { Kartografie } from "./Kartografie";
-import { KartenTracker } from "./KartenTracker";
-import { Ladebildschirm } from "./Ladebildschirm";
-import { Logbuch } from "./Logbuch";
-import { Schauplatz } from "./Schauplatz";
-import { Steckbriefe } from "./Steckbriefe";
-import { WuerfelOverlay } from "./WuerfelOverlay";
-import { Wuerfeltisch } from "./Wuerfeltisch";
+import { useState } from "react";
+import type { SystemName, TabName } from "../types";
+import { signOut } from "../hooks/useAuth";
+import { useCampaign } from "../state/CampaignContext";
+import { useSession } from "../state/SessionContext";
+import { CharacterSheet } from "./CharacterSheet";
+import { DnDAssistant } from "./DnDAssistant";
+import { CombatTracker } from "./CombatTracker";
+import { Cartography } from "./Cartography";
+import { MapTracker } from "./MapTracker";
+import { LoadingScreen } from "./LoadingScreen";
+import { Logbook } from "./Logbook";
+import { Scene } from "./Scene";
+import { WantedPosters } from "./WantedPosters";
+import { DiceOverlay } from "./DiceOverlay";
+import { DiceTable } from "./DiceTable";
+
+const SYSTEME: { id: SystemName; titel: string }[] = [
+  { id: "pnp", titel: "⚓ PnP — Grand Line" },
+  { id: "dnd", titel: "🐉 D&D" },
+];
 
 const TABS: { id: TabName; titel: string }[] = [
   { id: "bogen", titel: "Charakterbogen" },
@@ -24,65 +31,94 @@ const TABS: { id: TabName; titel: string }[] = [
   { id: "crew", titel: "Steckbriefe ☠" },
 ];
 
-const STATUS_TEXT = {
-  ruhig: "",
-  speichert: "speichert …",
-  gespeichert: "gespeichert ⚓",
-  fehler: "nicht gespeichert",
-} as const;
+const STATUS_TEXT: Record<string, string> = {
+  idle: "",
+  saving: "speichert …",
+  saved: "gespeichert ⚓",
+  error: "nicht gespeichert",
+};
+
+function loadSystem(): SystemName {
+  try {
+    const v = localStorage.getItem("gla:system");
+    if (v === "pnp" || v === "dnd") return v;
+  } catch { /* kein localStorage */ }
+  return "pnp";
+}
 
 export function GrandLineAssistant({ email }: { email?: string | null }) {
-  const { laedt, ladefehler, speicher, speicherStatus, speicherFehler, toast } = useKampagne();
-  const { tab, setTab } = useSitzung();
+  const { loading, loadError, storage, saveStatus, saveError, toast } = useCampaign();
+  const { tab, setTab } = useSession();
+  const [system, setSystemRaw] = useState<SystemName>(loadSystem);
 
-  if (laedt) return <Ladebildschirm text="Logbuch wird geöffnet …" />;
+  function setSystem(s: SystemName) {
+    setSystemRaw(s);
+    try { localStorage.setItem("gla:system", s); } catch { /* ignorieren */ }
+  }
+
+  if (loading) return <LoadingScreen text="Logbuch wird geöffnet …" />;
 
   return (
     <div className="gla-root">
       <div className="gla-topbar">
-        <span className={`speicher-status ${speicherStatus === "fehler" ? "fehler" : ""}`}
-          title={speicherFehler ?? undefined}>
-          {speicher.modus === "lokal" && "nur auf diesem Gerät · "}
-          {STATUS_TEXT[speicherStatus]}
+        <span className={`speicher-status ${saveStatus === "error" ? "fehler" : ""}`}
+          title={saveError ?? undefined}>
+          {storage.modus === "lokal" && "nur auf diesem Gerät · "}
+          {STATUS_TEXT[saveStatus]}
         </span>
         {email && (
           <>
             <span className="konto">{email}</span>
-            <button className="abmelden" onClick={() => void abmelden()}>Abmelden</button>
+            <button className="abmelden" onClick={() => void signOut()}>Abmelden</button>
           </>
         )}
       </div>
 
-      <header className="gla-header">
-        <h1>⚓ Grand Line Assistant</h1>
-        <div className="sub">Logbuch eurer Kampagne — Bögen, Würfel &amp; Beute</div>
-      </header>
-
-      {ladefehler && (
-        <p className="auth-hinweis" style={{ margin: "0 auto 12px", color: "#ef6a52" }}>
-          Daten konnten nicht geladen werden: {ladefehler}
-        </p>
-      )}
-
-      <nav className="gla-tabs">
-        {TABS.map(t => (
-          <button key={t.id} className={`gla-tab ${tab === t.id ? "active" : ""}`}
-            onClick={() => setTab(t.id)}>
-            {t.titel}
+      <nav className="system-tabs">
+        {SYSTEME.map(s => (
+          <button key={s.id} className={`system-tab ${system === s.id ? "active" : ""}`}
+            onClick={() => setSystem(s.id)}>
+            {s.titel}
           </button>
         ))}
       </nav>
 
-      {tab === "bogen" && <Charakterbogen />}
-      {tab === "wuerfel" && <Wuerfeltisch />}
-      {tab === "kampf" && <KampfTracker />}
-      {tab === "karte" && <KartenTracker />}
-      {tab === "zeichnen" && <Kartografie />}
-      {tab === "detail" && <Schauplatz />}
-      {tab === "notizen" && <Logbuch />}
-      {tab === "crew" && <Steckbriefe />}
+      {system === "pnp" && (
+        <>
+          <header className="gla-header">
+            <h1>⚓ Grand Line Assistant</h1>
+            <div className="sub">Logbuch eurer Kampagne — Bögen, Würfel &amp; Beute</div>
+          </header>
 
-      <WuerfelOverlay />
+          {loadError && (
+            <p className="auth-hinweis" style={{ margin: "0 auto 12px", color: "#ef6a52" }}>
+              Daten konnten nicht geladen werden: {loadError}
+            </p>
+          )}
+
+          <nav className="gla-tabs">
+            {TABS.map(t => (
+              <button key={t.id} className={`gla-tab ${tab === t.id ? "active" : ""}`}
+                onClick={() => setTab(t.id)}>
+                {t.titel}
+              </button>
+            ))}
+          </nav>
+
+          {tab === "bogen" && <CharacterSheet />}
+          {tab === "wuerfel" && <DiceTable />}
+          {tab === "kampf" && <CombatTracker />}
+          {tab === "karte" && <MapTracker />}
+          {tab === "zeichnen" && <Cartography />}
+          {tab === "detail" && <Scene />}
+          {tab === "notizen" && <Logbook />}
+          {tab === "crew" && <WantedPosters />}
+
+          <DiceOverlay />
+        </>
+      )}
+
+      {system === "dnd" && <DnDAssistant />}
 
       {toast && <div className="toast">{toast}</div>}
     </div>

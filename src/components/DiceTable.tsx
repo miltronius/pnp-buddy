@@ -1,15 +1,15 @@
 import { ATTRIBUTE, type AttributName, type Wuerfelseiten } from "../types";
-import { VERDIKT_TEXT, ausgleich, mitVorzeichen } from "../lib/spiel";
-import { useKampagne } from "../state/KampagneContext";
-import { useSitzung } from "../state/SitzungContext";
+import { VERDICT_TEXT, balanceValue, withSign } from "../lib/game";
+import { useCampaign } from "../state/CampaignContext";
+import { useSession } from "../state/SessionContext";
 import { NumberInput } from "./NumberInput";
 
 const SEITEN: Wuerfelseiten[] = [4, 6, 8, 10, 12, 20, 100];
 
 /** Steuerung des Würfeltischs + Logbuch der letzten Würfe. */
-export function Wuerfeltisch() {
-  const { active } = useKampagne();
-  const { count, setCount, sides, setSides, probeAtt, setProbeAtt, roll, history } = useSitzung();
+export function DiceTable() {
+  const { active } = useCampaign();
+  const { count, setCount, sides, setSides, probeAtt, setProbeAtt, roll, history } = useSession();
 
   return (
     <div style={{ padding: "0 14px" }}>
@@ -31,7 +31,7 @@ export function Wuerfeltisch() {
               <option value="">— keine —</option>
               {ATTRIBUTE.map(a => (
                 <option key={a} value={a}>
-                  {a} ({mitVorzeichen(ausgleich(active.attribute[a]))})
+                  {a} ({withSign(balanceValue(active.attribute[a]))})
                 </option>
               ))}
             </select>
@@ -48,8 +48,8 @@ export function Wuerfeltisch() {
             {history.map((h, i) => (
               <li key={i}>
                 🎲 {h.vals.length}W{h.sides}: [{h.vals.join(", ")}] = {h.sum}
-                {h.att ? ` ${mitVorzeichen(h.mod)} (${h.att}) → ${h.total}` : ""}
-                {h.verdict ? ` — ${VERDIKT_TEXT[h.verdict]}` : ""}
+                {h.att ? ` ${withSign(h.mod)} (${h.att}) → ${h.total}` : ""}
+                {h.verdict ? ` — ${VERDICT_TEXT[h.verdict]}` : ""}
               </li>
             ))}
           </ul>

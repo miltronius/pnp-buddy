@@ -1,16 +1,16 @@
 import { ATTRIBUTE, type AttributName, type Charakter, type Kaempfer, type Waffe } from "../types";
-import { ausgleich, neueId } from "../lib/spiel";
-import { useKampagne } from "../state/KampagneContext";
-import { useSitzung } from "../state/SitzungContext";
+import { balanceValue, newId } from "../lib/game";
+import { useCampaign } from "../state/CampaignContext";
+import { useSession } from "../state/SessionContext";
 import { NumberInput } from "./NumberInput";
 
-export function KampfTracker() {
-  const { chars, zeigeToast } = useKampagne();
+export function CombatTracker() {
+  const { chars, showToast } = useCampaign();
   const {
     fighters, setFighters, turnIdx, setTurnIdx, round, setRound,
     combatActive, setCombatActive,
     rollProbeFor, rollDamage, rollFlat, rollInitiative,
-  } = useSitzung();
+  } = useSession();
 
   /* ---- Reihenfolge: höchste Initiative zuerst, sonst Eintragsreihenfolge ---- */
   const sortiert = [...fighters]
@@ -23,9 +23,9 @@ export function KampfTracker() {
     });
 
   function addFighterFromChar(c: Charakter) {
-    if (fighters.some(f => f.charId === c.id)) { zeigeToast("Schon im Kampf dabei"); return; }
+    if (fighters.some(f => f.charId === c.id)) { showToast("Schon im Kampf dabei"); return; }
     setFighters(fs => [...fs, {
-      id: neueId("f"),
+      id: newId("f"),
       charId: c.id, name: c.name || "Namenlos", seite: "crew",
       iniAtt: "Geschicklichkeit", ini: null,
       hp: Number(c.leben) || 10, maxHp: Number(c.leben) || 10, tot: false,
@@ -34,7 +34,7 @@ export function KampfTracker() {
 
   function addEnemy() {
     setFighters(fs => [...fs, {
-      id: neueId("f"),
+      id: newId("f"),
       charId: null, name: "", seite: "gegner",
       iniAtt: "Geschicklichkeit", ini: null,
       hp: 10, maxHp: 10, tot: false, iniMod: 0,
@@ -69,7 +69,7 @@ export function KampfTracker() {
       let mod = 0;
       if (f.charId) {
         const c = chars.find(x => x.id === f.charId);
-        if (c) mod = ausgleich(c.attribute[f.iniAtt]);
+        if (c) mod = balanceValue(c.attribute[f.iniAtt]);
       } else {
         mod = Number(f.iniMod) || 0;
       }
@@ -81,7 +81,7 @@ export function KampfTracker() {
   }
 
   function startCombat() {
-    if (fighters.length === 0) { zeigeToast("Erst Kämpfer hinzufügen"); return; }
+    if (fighters.length === 0) { showToast("Erst Kämpfer hinzufügen"); return; }
     setCombatActive(true);
     setRound(1);
     setTurnIdx(0);

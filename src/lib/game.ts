@@ -1,9 +1,3 @@
-/* ============================================================
-   Spiel-Logik — 1:1 aus dem Prototyp übernommen.
-   Diese Funktionen sind reine Berechnung, im Spiel verifiziert
-   und haben nichts mit Speicherung zu tun. Nicht neu erfinden.
-   ============================================================ */
-
 import {
   ATTRIBUTE,
   type AttributName,
@@ -18,8 +12,8 @@ import {
   type ZeichnungZustand,
 } from "../types";
 
-/** Ausgleichs-Wert je Attributstufe (Nachschlagetabelle des Regelwerks). */
-export function ausgleich(level: number | undefined | null): number {
+/** Balance modifier per attribute level (game rule lookup table). */
+export function balanceValue(level: number | undefined | null): number {
   const l = Number(level) || 0;
   if (l <= 1) return -4;
   if (l <= 3) return -3;
@@ -32,8 +26,7 @@ export function ausgleich(level: number | undefined | null): number {
   return 4;
 }
 
-/** Vorzeichenbehaftete Anzeige eines Ausgleichs: -3, +0, +2 … */
-export function mitVorzeichen(n: number): string {
+export function withSign(n: number): string {
   return n >= 0 ? `+${n}` : String(n);
 }
 
@@ -43,7 +36,6 @@ export type SchadensTeil =
 
 const ERLAUBTE_SEITEN: Wuerfelseiten[] = [4, 6, 8, 10, 12, 20, 100];
 
-/** Zerlegt einen Schadensausdruck wie "2W6+3" oder "W8 + W6" in Würfelgruppen. */
 export function parseDamage(str: string | null | undefined): SchadensTeil[] {
   const parts: SchadensTeil[] = [];
   const clean = String(str || "").replace(/\s+/g, "").toLowerCase();
@@ -62,20 +54,19 @@ export function parseDamage(str: string | null | undefined): SchadensTeil[] {
   return parts;
 }
 
-export interface RangBilanz extends FruchtRang {
+export interface RankBalance extends FruchtRang {
   kosten: number;
   canUnlock: boolean;
   canLock: boolean;
 }
 
-export interface FruchtBilanz {
-  verfuegbar: number;
-  ausgegeben: number;
-  raenge: RangBilanz[];
+export interface FruitBalance {
+  available: number;
+  spent: number;
+  raenge: RankBalance[];
 }
 
-/** Level-Bilanz der Teufelsfrucht: welche Ränge sind bezahlbar/freischaltbar? */
-export function fruchtBilanz(stufe: number, raenge: FruchtRang[] | undefined): FruchtBilanz {
+export function fruitBalance(stufe: number, raenge: FruchtRang[] | undefined): FruitBalance {
   let ausgegeben = 0;
   const base = (raenge || []).map(r => {
     const kosten = Math.max(0, r.kostenLevel | 0);
@@ -83,7 +74,7 @@ export function fruchtBilanz(stufe: number, raenge: FruchtRang[] | undefined): F
     return { ...r, kosten };
   });
   const verfuegbar = (stufe | 0) - ausgegeben;
-  const out: RangBilanz[] = base.map((r, i) => {
+  const out: RankBalance[] = base.map((r, i) => {
     const prevOk = i === 0 || base[i - 1].unlocked;
     const nextLocked = i === base.length - 1 || !base[i + 1].unlocked;
     return {
@@ -92,19 +83,13 @@ export function fruchtBilanz(stufe: number, raenge: FruchtRang[] | undefined): F
       canLock: !!r.unlocked && nextLocked,
     };
   });
-  return { verfuegbar, ausgegeben, raenge: out };
+  return { available: verfuegbar, spent: ausgegeben, raenge: out };
 }
 
-/* ---------- IDs ----------
-   Der Charakter bekommt eine echte uuid, weil er als DB-Zeile landet.
-   Innere IDs (Waffen, Skills, Token …) bleiben freie Strings im jsonb —
-   sie laufen nie gegen eine DB-Spalte. */
-
-export function neueUuid(): string {
+export function newUuid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
-  // Fallback für sehr alte Umgebungen
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
     const v = c === "x" ? r : (r & 0x3) | 0x8;
@@ -112,19 +97,17 @@ export function neueUuid(): string {
   });
 }
 
-export function neueId(prefix = "i"): string {
+export function newId(prefix = "i"): string {
   return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-/* ---------- Frisch angelegte Datensätze ---------- */
-
-export function leereAttribute(): Attributwerte {
+export function emptyAttributes(): Attributwerte {
   return Object.fromEntries(ATTRIBUTE.map(a => [a, 8])) as Attributwerte;
 }
 
-export function neuerCharakter(): Charakter {
+export function newCharacter(): Charakter {
   return {
-    id: neueUuid(),
+    id: newUuid(),
     name: "",
     stufe: 0,
     leben: 14,
@@ -133,7 +116,7 @@ export function neuerCharakter(): Charakter {
     ziel: "",
     spezial: "",
     eigenschaften: "",
-    habUndGut: [{ id: neueId("g"), text: "", anzahl: 1 }],
+    habUndGut: [{ id: newId("g"), text: "", anzahl: 1 }],
     waffen: [],
     skills: [],
     teufelsfrucht: { name: "", typ: "", raenge: [] },
@@ -141,46 +124,42 @@ export function neuerCharakter(): Charakter {
     portrait: null,
     epitheton: "",
     berries: 0,
-    attribute: leereAttribute(),
+    attribute: emptyAttributes(),
   };
 }
 
-export function neueCrew(): Crew {
+export function newCrew(): Crew {
   return { name: "", jollyRoger: null, schiffName: "", schiffBeschreibung: "", flotte: "" };
 }
 
-export function neueKarte(): KartenZustand {
+export function newMap(): KartenZustand {
   return { bg: null, gridOn: true, tokens: [] };
 }
 
-export function neueZeichnung(): ZeichnungZustand {
+export function newDrawing(): ZeichnungZustand {
   return { grid: null, buildings: [] };
 }
 
-export function neuerSchauplatz(): SchauplatzZustand {
+export function newScene(): SchauplatzZustand {
   return { objects: [], bg: "stein" };
 }
 
-export function neuesLogbuch(): LogbuchZustand {
+export function newLogbook(): LogbuchZustand {
   return { notizen: "", quests: [] };
 }
 
-/* ---------- Anzeige ---------- */
-
-/** 1234567 → "1.234.567" */
 export function formatBerry(n: number | string | null | undefined): string {
   const num = Math.max(0, Math.floor(Number(n) || 0));
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
-export const VERDIKT_TEXT = {
+export const VERDICT_TEXT = {
   ok: "GESCHAFFT",
   mid: "TEILWEISE",
   fail: "FEHLSCHLAG",
 } as const;
 
-/** Attribut-Ausgleich eines Charakters, sicher gegen fehlende Werte. */
-export function charAusgleich(c: Charakter | null | undefined, att: AttributName | null): number {
+export function characterBalance(c: Charakter | null | undefined, att: AttributName | null): number {
   if (!c || !att) return 0;
-  return ausgleich(c.attribute?.[att]);
+  return balanceValue(c.attribute?.[att]);
 }

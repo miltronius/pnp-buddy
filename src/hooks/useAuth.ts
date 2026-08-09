@@ -1,37 +1,36 @@
 import { useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { istCloudKonfiguriert, supabase } from "../lib/supabase";
+import { isCloudConfigured, supabase } from "../lib/supabase";
 
-export interface AuthZustand {
+export interface AuthState {
   session: Session | null;
   user: User | null;
-  laedt: boolean;
+  loading: boolean;
   /** false, wenn kein Supabase-Projekt hinterlegt ist — dann läuft alles lokal. */
   cloud: boolean;
 }
 
-/** Stellt die aktuelle Supabase-Sitzung bereit und hält sie aktuell. */
-export function useAuth(): AuthZustand {
+export function useAuth(): AuthState {
   const [session, setSession] = useState<Session | null>(null);
-  const [laedt, setLaedt] = useState(istCloudKonfiguriert);
+  const [loading, setLoading] = useState(isCloudConfigured);
 
   useEffect(() => {
-    if (!supabase) return;              // lokaler Modus: nichts zu laden
-    let aktiv = true;
+    if (!supabase) return;
+    let active = true;
 
     supabase.auth.getSession().then(({ data }) => {
-      if (!aktiv) return;
+      if (!active) return;
       setSession(data.session);
-      setLaedt(false);
+      setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_ereignis, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      setLaedt(false);
+      setLoading(false);
     });
 
     return () => {
-      aktiv = false;
+      active = false;
       sub.subscription.unsubscribe();
     };
   }, []);
@@ -39,26 +38,25 @@ export function useAuth(): AuthZustand {
   return {
     session,
     user: session?.user ?? null,
-    laedt,
-    cloud: istCloudKonfiguriert,
+    loading,
+    cloud: isCloudConfigured,
   };
 }
 
-export async function anmelden(email: string, passwort: string): Promise<void> {
+export async function signIn(email: string, password: string): Promise<void> {
   if (!supabase) throw new Error("Supabase ist nicht konfiguriert");
-  const { error } = await supabase.auth.signInWithPassword({ email, password: passwort });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
 }
 
-export async function registrieren(email: string, passwort: string): Promise<{ bestaetigungNoetig: boolean }> {
+export async function signUp(email: string, password: string): Promise<{ confirmationRequired: boolean }> {
   if (!supabase) throw new Error("Supabase ist nicht konfiguriert");
-  const { data, error } = await supabase.auth.signUp({ email, password: passwort });
+  const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) throw error;
-  // Ohne Session heißt: Supabase erwartet die Bestätigung per E-Mail.
-  return { bestaetigungNoetig: !data.session };
+  return { confirmationRequired: !data.session };
 }
 
-export async function abmelden(): Promise<void> {
+export async function signOut(): Promise<void> {
   if (!supabase) return;
   await supabase.auth.signOut();
 }

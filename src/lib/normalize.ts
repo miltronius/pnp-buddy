@@ -1,11 +1,3 @@
-/* ============================================================
-   Fremde Daten begradigen.
-   Alles, was aus localStorage, aus der Datenbank oder aus einem
-   alten Prototyp-Export kommt, läuft hier durch: fehlende Felder
-   werden ergänzt, Typen erzwungen. So kann der Rest der App mit
-   sauberen Objekten rechnen.
-   ============================================================ */
-
 import {
   ATTRIBUTE,
   type AttributName,
@@ -26,9 +18,9 @@ import {
   type ZeichnungZustand,
 } from "../types";
 import {
-  leereAttribute, neueCrew, neueId, neueKarte, neueUuid,
-  neuerSchauplatz, neuesLogbuch, neueZeichnung,
-} from "./spiel";
+  emptyAttributes, newCrew, newId, newMap, newUuid,
+  newScene, newLogbook, newDrawing,
+} from "./game";
 
 const istObjekt = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -52,7 +44,7 @@ function attributName(v: unknown, fallback: AttributName = "Nahkampf"): Attribut
 
 function attribute(v: unknown): Attributwerte {
   const roh = istObjekt(v) ? v : {};
-  const out = leereAttribute();
+  const out = emptyAttributes();
   for (const a of ATTRIBUTE) {
     if (roh[a] !== undefined) out[a] = Math.max(1, Math.round(zahl(roh[a], 8)));
   }
@@ -62,7 +54,7 @@ function attribute(v: unknown): Attributwerte {
 function gegenstand(v: unknown): Gegenstand {
   const o = istObjekt(v) ? v : {};
   return {
-    id: text(o.id, "") || neueId("g"),
+    id: text(o.id, "") || newId("g"),
     text: text(o.text),
     anzahl: Math.max(0, Math.round(zahl(o.anzahl, 1))),
   };
@@ -71,7 +63,7 @@ function gegenstand(v: unknown): Gegenstand {
 function waffe(v: unknown): Waffe {
   const o = istObjekt(v) ? v : {};
   return {
-    id: text(o.id, "") || neueId("w"),
+    id: text(o.id, "") || newId("w"),
     name: text(o.name),
     att: attributName(o.att),
     schaden: text(o.schaden, "W6"),
@@ -82,7 +74,7 @@ function skill(v: unknown): Skill {
   const o = istObjekt(v) ? v : {};
   const att = text(o.att);
   return {
-    id: text(o.id, "") || neueId("s"),
+    id: text(o.id, "") || newId("s"),
     name: text(o.name),
     att: ATTRIBUTE.includes(att as AttributName) ? (att as AttributName) : "",
     beschreibung: text(o.beschreibung),
@@ -93,7 +85,7 @@ function rang(v: unknown): FruchtRang {
   const o = istObjekt(v) ? v : {};
   const wurfTyp = text(o.wurfTyp);
   return {
-    id: text(o.id, "") || neueId("r"),
+    id: text(o.id, "") || newId("r"),
     name: text(o.name),
     beschreibung: text(o.beschreibung),
     kostenLevel: Math.max(0, Math.round(zahl(o.kostenLevel, 1))),
@@ -105,17 +97,15 @@ function rang(v: unknown): FruchtRang {
   };
 }
 
-export function normalisiereCharakter(v: unknown): Charakter {
+export function normalizeCharacter(v: unknown): Charakter {
   const o = istObjekt(v) ? v : {};
   const frucht = istObjekt(o.teufelsfrucht) ? o.teufelsfrucht : {};
   const fruchtTyp = text(frucht.typ);
   const habUndGut = liste(o.habUndGut).map(gegenstand);
   return {
-    // Der Prototyp erzeugte IDs wie "c1699…". In der Cloud braucht es eine
-    // uuid — ist die vorhandene ID keine, bekommt der Charakter eine neue.
     id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text(o.id))
       ? text(o.id)
-      : neueUuid(),
+      : newUuid(),
     name: text(o.name),
     stufe: Math.max(0, Math.round(zahl(o.stufe, 0))),
     leben: Math.max(0, Math.round(zahl(o.leben, 14))),
@@ -124,7 +114,7 @@ export function normalisiereCharakter(v: unknown): Charakter {
     ziel: text(o.ziel),
     spezial: text(o.spezial),
     eigenschaften: text(o.eigenschaften),
-    habUndGut: habUndGut.length ? habUndGut : [{ id: neueId("g"), text: "", anzahl: 1 }],
+    habUndGut: habUndGut.length ? habUndGut : [{ id: newId("g"), text: "", anzahl: 1 }],
     waffen: liste(o.waffen).map(waffe),
     skills: liste(o.skills).map(skill),
     teufelsfrucht: {
@@ -140,9 +130,9 @@ export function normalisiereCharakter(v: unknown): Charakter {
   };
 }
 
-export function normalisiereCrew(v: unknown): Crew {
+export function normalizeCrew(v: unknown): Crew {
   const o = istObjekt(v) ? v : {};
-  const leer = neueCrew();
+  const leer = newCrew();
   return {
     name: text(o.name, leer.name),
     jollyRoger: typeof o.jollyRoger === "string" && o.jollyRoger ? o.jollyRoger : null,
@@ -158,7 +148,7 @@ function mapToken(v: unknown): MapToken {
   const o = istObjekt(v) ? v : {};
   const kind = text(o.kind, "crew");
   return {
-    id: text(o.id, "") || neueId("t"),
+    id: text(o.id, "") || newId("t"),
     label: text(o.label),
     kind: (TOKEN_ARTEN as readonly string[]).includes(kind) ? (kind as MapToken["kind"]) : "crew",
     color: text(o.color, "#555"),
@@ -168,9 +158,9 @@ function mapToken(v: unknown): MapToken {
   };
 }
 
-export function normalisiereKarte(v: unknown): KartenZustand {
+export function normalizeMap(v: unknown): KartenZustand {
   const o = istObjekt(v) ? v : {};
-  const leer = neueKarte();
+  const leer = newMap();
   return {
     bg: typeof o.bg === "string" && o.bg ? o.bg : null,
     gridOn: jaNein(o.gridOn, leer.gridOn),
@@ -181,9 +171,9 @@ export function normalisiereKarte(v: unknown): KartenZustand {
 const TERRAINS = ["wasser", "strand", "gruen", "wald", "fels", "weg"] as const;
 const BAUWERKE = ["haus", "turm", "taverne", "hafen", "schatz", "kreuz", "baum", "berg"] as const;
 
-export function normalisiereZeichnung(v: unknown): ZeichnungZustand {
+export function normalizeDrawing(v: unknown): ZeichnungZustand {
   const o = istObjekt(v) ? v : {};
-  const leer = neueZeichnung();
+  const leer = newDrawing();
   let grid = leer.grid;
   if (istObjekt(o.grid)) {
     const cols = Math.max(1, Math.round(zahl(o.grid.cols, 60)));
@@ -201,7 +191,7 @@ export function normalisiereZeichnung(v: unknown): ZeichnungZustand {
     const bo = istObjekt(b) ? b : {};
     const kind = text(bo.kind, "haus");
     return {
-      id: text(bo.id, "") || neueId("b"),
+      id: text(bo.id, "") || newId("b"),
       kind: (BAUWERKE as readonly string[]).includes(kind) ? (kind as (typeof BAUWERKE)[number]) : "haus",
       x: Math.min(100, Math.max(0, zahl(bo.x, 50))),
       y: Math.min(100, Math.max(0, zahl(bo.y, 50))),
@@ -216,7 +206,7 @@ const bodenArt = (v: unknown, fallback: BodenArt = "stein"): BodenArt =>
 
 function detailObjekt(v: unknown): DetailObjekt | null {
   const o = istObjekt(v) ? v : {};
-  const id = text(o.id, "") || neueId("o");
+  const id = text(o.id, "") || newId("o");
   switch (o.type) {
     case "rect":
       return { id, type: "rect", x: zahl(o.x), y: zahl(o.y), w: zahl(o.w), h: zahl(o.h), terr: bodenArt(o.terr) };
@@ -231,9 +221,9 @@ function detailObjekt(v: unknown): DetailObjekt | null {
   }
 }
 
-export function normalisiereSchauplatz(v: unknown): SchauplatzZustand {
+export function normalizeScene(v: unknown): SchauplatzZustand {
   const o = istObjekt(v) ? v : {};
-  const leer = neuerSchauplatz();
+  const leer = newScene();
   return {
     objects: liste(o.objects).map(detailObjekt).filter((x): x is DetailObjekt => x !== null),
     bg: bodenArt(o.bg, leer.bg),
@@ -243,16 +233,16 @@ export function normalisiereSchauplatz(v: unknown): SchauplatzZustand {
 function quest(v: unknown): Quest {
   const o = istObjekt(v) ? v : {};
   return {
-    id: text(o.id, "") || neueId("q"),
+    id: text(o.id, "") || newId("q"),
     titel: text(o.titel),
     notiz: text(o.notiz),
     erledigt: jaNein(o.erledigt),
   };
 }
 
-export function normalisiereLogbuch(v: unknown): LogbuchZustand {
+export function normalizeLogbook(v: unknown): LogbuchZustand {
   const o = istObjekt(v) ? v : {};
-  const leer = neuesLogbuch();
+  const leer = newLogbook();
   return {
     notizen: text(o.notizen, leer.notizen),
     quests: liste(o.quests).map(quest),

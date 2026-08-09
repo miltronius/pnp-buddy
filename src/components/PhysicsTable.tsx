@@ -16,7 +16,7 @@ import {
   applyI, cross, dot3, faceLabel, flatness, iinvWorld,
   mRot, mRotT, mToCss, norm3, qAngle, qMul, qNorm, qToM, randQ, readFace, shapeFor,
   type Form, type Koerper, type Mat33, type Quat, type Vec3,
-} from "../lib/physik";
+} from "../lib/physics";
 
 /* ---------- Würfel-Optik (W6 als CSS-Würfel mit Augen) ---------- */
 

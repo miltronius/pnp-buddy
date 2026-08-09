@@ -1,22 +1,15 @@
-/* ============================================================
-   Sitzungs-Zustand: alles, was nur für die laufende Runde gilt
-   und nicht gespeichert wird — offener Reiter, Kampf-Tracker und
-   der Würfeltisch.
-   Die Wurf-Logik ist 1:1 aus dem Prototyp übernommen.
-   ============================================================ */
-
 import {
   createContext, useCallback, useContext, useState,
   type Dispatch, type ReactNode, type SetStateAction,
 } from "react";
-import { ausgleich, neueId, parseDamage } from "../lib/spiel";
-import { useKampagne } from "./KampagneContext";
+import { balanceValue, newId, parseDamage } from "../lib/game";
+import { useCampaign } from "./CampaignContext";
 import type {
   AttributName, Charakter, Kaempfer, TabName, Waffe, Wuerfelgruppe,
   Wuerfelseiten, WurfErgebnis, WurfSpezifikation,
 } from "../types";
 
-interface WurfOptionen {
+interface RollOptions {
   count?: number;
   sides?: Wuerfelseiten;
   att?: AttributName | null;
@@ -26,7 +19,7 @@ interface WurfOptionen {
   backTo?: TabName | null;
 }
 
-export interface SitzungWert {
+export interface SessionValue {
   tab: TabName;
   setTab: (t: TabName) => void;
 
@@ -41,7 +34,7 @@ export interface SitzungWert {
   result: WurfErgebnis | null;
   history: WurfErgebnis[];
 
-  roll: (opts?: WurfOptionen) => void;
+  roll: (opts?: RollOptions) => void;
   probe: (att: AttributName) => void;
   rollDamage: (waffe: Pick<Waffe, "name" | "schaden">, opts?: { label?: string; backTo?: TabName | null }) => void;
   rollProbeFor: (att: AttributName, label: string, opts?: { flat?: number; backTo?: TabName | null }) => void;
@@ -62,16 +55,16 @@ export interface SitzungWert {
   setCombatActive: (b: boolean) => void;
 }
 
-const Ctx = createContext<SitzungWert | null>(null);
+const Ctx = createContext<SessionValue | null>(null);
 
-export function useSitzung(): SitzungWert {
-  const wert = useContext(Ctx);
-  if (!wert) throw new Error("useSitzung braucht einen <SitzungProvider>");
-  return wert;
+export function useSession(): SessionValue {
+  const value = useContext(Ctx);
+  if (!value) throw new Error("useSession requires a <SessionProvider>");
+  return value;
 }
 
-export function SitzungProvider({ children }: { children: ReactNode }) {
-  const { active, zeigeToast } = useKampagne();
+export function SessionProvider({ children }: { children: ReactNode }) {
+  const { active, showToast } = useCampaign();
 
   const [tab, setTab] = useState<TabName>("bogen");
 
@@ -89,7 +82,7 @@ export function SitzungProvider({ children }: { children: ReactNode }) {
 
   /* ---------- Werfen ---------- */
 
-  const roll = useCallback((opts: WurfOptionen = {}) => {
+  const roll = useCallback((opts: RollOptions = {}) => {
     const n = opts.count ?? count;
     const s = opts.sides ?? sides;
     const att = opts.att !== undefined ? opts.att : (probeAtt || null);
@@ -124,7 +117,7 @@ export function SitzungProvider({ children }: { children: ReactNode }) {
       .filter(x => x.flat != null)
       .reduce((a, x) => a + (x.flat ?? 0), 0);
     if (!diceParts.length && !flat) {
-      zeigeToast("Kein gültiger Schadenswurf hinterlegt");
+      showToast("Kein gültiger Schadenswurf hinterlegt");
       return;
     }
     const groups: Wuerfelgruppe[] = diceParts.map(d => ({ n: d.n as number, sides: d.sides as Wuerfelseiten }));
@@ -136,13 +129,12 @@ export function SitzungProvider({ children }: { children: ReactNode }) {
       label: opts.label ?? `Schaden — ${waffe.name || "Waffe"}`,
       kind: "schaden",
       backTo: opts.backTo ?? null,
-      // Die erste Gruppe füttert die Felder, mit denen der Tisch startet.
       count: groups[0]?.n ?? 1,
       sides: groups[0]?.sides ?? 6,
       att: null,
     });
     setTab("wuerfel");
-  }, [zeigeToast]);
+  }, [showToast]);
 
   /** Probe direkt aus einem Skill, einer Waffe oder einer Fruchtkraft. */
   const rollProbeFor = useCallback((
@@ -180,14 +172,12 @@ export function SitzungProvider({ children }: { children: ReactNode }) {
   const rollInitiative = useCallback((f: Kaempfer, char: Charakter | null) => {
     setResult(null);
     if (char) {
-      // Crew: 2W6 + Ausgleich des gewählten Attributs
       setThrowSpec({
         id: Date.now(), count: 2, sides: 6, att: f.iniAtt,
         label: `Initiative — ${f.name}`, kind: "initiative", flat: 0,
         fighterId: f.id, backTo: "kampf",
       });
     } else {
-      // Gegner: 2W6 + fester Ini-Modifikator
       setThrowSpec({
         id: Date.now(), count: 2, sides: 6, att: null,
         label: `Initiative — ${f.name || "Gegner"}`, kind: "initiative",
@@ -201,7 +191,6 @@ export function SitzungProvider({ children }: { children: ReactNode }) {
     const spec = throwSpec;
     if (!spec) return;
 
-    // Gemischter Schaden (z. B. W8 + W6): weitere Gruppen nacheinander werfen
     if (spec.groups && spec.groups.length > 1 && (spec.groupIndex ?? 0) < spec.groups.length - 1) {
       const gi = spec.groupIndex ?? 0;
       const carried = [...(spec.carriedVals ?? []), ...vals];
@@ -219,7 +208,7 @@ export function SitzungProvider({ children }: { children: ReactNode }) {
 
     const allVals = [...(spec.carriedVals ?? []), ...vals];
     const sum = allVals.reduce((a, b) => a + b, 0);
-    const attMod = spec.att ? ausgleich(active?.attribute[spec.att]) : 0;
+    const attMod = spec.att ? balanceValue(active?.attribute[spec.att]) : 0;
     const flat = spec.flat || 0;
     const mod = attMod + flat;
     const total = sum + mod;
@@ -235,7 +224,6 @@ export function SitzungProvider({ children }: { children: ReactNode }) {
     setResult(res);
     setHistory(h => [res, ...h].slice(0, 8));
 
-    // Initiative-Wurf: Ergebnis dem Kämpfer zuweisen
     if (spec.kind === "initiative" && spec.fighterId) {
       setFighters(fs => fs.map(f => (f.id === spec.fighterId ? { ...f, ini: total } : f)));
     }
@@ -260,7 +248,7 @@ export function SitzungProvider({ children }: { children: ReactNode }) {
     if (back) setTab(back);
   }, [throwSpec]);
 
-  const wert: SitzungWert = {
+  const value: SessionValue = {
     tab, setTab,
     count, setCount, sides, setSides, probeAtt, setProbeAtt,
     throwSpec, result, history,
@@ -270,11 +258,11 @@ export function SitzungProvider({ children }: { children: ReactNode }) {
     round, setRound, combatActive, setCombatActive,
   };
 
-  return <Ctx.Provider value={wert}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 /* ---------- Hilfen für den Kampf-Tracker ---------- */
 
-export function neuerKaempferId(): string {
-  return neueId("f");
+export function newFighterId(): string {
+  return newId("f");
 }

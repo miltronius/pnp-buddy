@@ -1,13 +1,13 @@
 import type { ChangeEvent } from "react";
-import { loadImageScaled } from "../lib/bilder";
-import { formatBerry } from "../lib/spiel";
-import { useKampagne } from "../state/KampagneContext";
+import { loadImageScaled } from "../lib/images";
+import { formatBerry } from "../lib/game";
+import { useCampaign } from "../state/CampaignContext";
 import { NumberInput } from "./NumberInput";
 
-export function Steckbriefe() {
-  const { chars, setChars, crew, setCrew, speicher, jetztSpeichern, zeigeToast } = useKampagne();
+export function WantedPosters() {
+  const { chars, setChars, crew, setCrew, storage, saveNow, showToast } = useCampaign();
 
-  const jollyUrl = speicher.bildUrl(crew.jollyRoger);
+  const jollyUrl = storage.bildUrl(crew.jollyRoger);
 
   async function onJollyUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -15,10 +15,10 @@ export function Steckbriefe() {
     if (!file) return;
     try {
       const datenUrl = await loadImageScaled(file, 500, { square: true });
-      const wert = await speicher.bildSpeichern(datenUrl);
+      const wert = await storage.bildSpeichern(datenUrl);
       setCrew(c => ({ ...c, jollyRoger: wert }));
     } catch (err) {
-      zeigeToast(err instanceof Error ? err.message : "Bild konnte nicht geladen werden");
+      showToast(err instanceof Error ? err.message : "Bild konnte nicht geladen werden");
     }
   }
 
@@ -28,11 +28,11 @@ export function Steckbriefe() {
     if (!file) return;
     try {
       const datenUrl = await loadImageScaled(file, 600, { square: true });
-      const wert = await speicher.bildSpeichern(datenUrl);
+      const wert = await storage.bildSpeichern(datenUrl);
       setChars(cs => cs.map(c => (c.id === charId ? { ...c, portrait: wert } : c)));
-      zeigeToast("Porträt gesetzt ⚓");
+      showToast("Porträt gesetzt ⚓");
     } catch (err) {
-      zeigeToast(err instanceof Error ? err.message : "Bild konnte nicht geladen werden");
+      showToast(err instanceof Error ? err.message : "Bild konnte nicht geladen werden");
     }
   }
 
@@ -93,7 +93,7 @@ export function Steckbriefe() {
         {/* WANTED-Steckbriefe */}
         <div className="wanted-grid">
           {chars.map(c => {
-            const portraitUrl = speicher.bildUrl(c.portrait);
+            const portraitUrl = storage.bildUrl(c.portrait);
             return (
               <div className="wanted" key={c.id}>
                 <div className="wanted-head">WANTED</div>
@@ -127,7 +127,7 @@ export function Steckbriefe() {
         </div>
 
         <div className="save-bar" style={{ marginTop: 14 }}>
-          <button className="gla-btn" onClick={async () => { await jetztSpeichern("crew"); await jetztSpeichern("chars"); }}>
+          <button className="gla-btn" onClick={async () => { await saveNow("crew"); await saveNow("chars"); }}>
             Steckbriefe &amp; Crew speichern
           </button>
         </div>

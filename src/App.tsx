@@ -1,25 +1,25 @@
-import { AnmeldeMaske } from "./components/AnmeldeMaske";
+import { LoginScreen } from "./components/LoginScreen";
 import { GrandLineAssistant } from "./components/GrandLineAssistant";
-import { Ladebildschirm } from "./components/Ladebildschirm";
+import { LoadingScreen } from "./components/LoadingScreen";
 import { useAuth } from "./hooks/useAuth";
-import { KampagneProvider } from "./state/KampagneContext";
-import { SitzungProvider } from "./state/SitzungContext";
+import { CampaignProvider } from "./state/CampaignContext";
+import { SessionProvider } from "./state/SessionContext";
 
 export default function App() {
-  const { user, laedt, cloud } = useAuth();
+  const { user, loading, cloud } = useAuth();
 
-  if (laedt) return <Ladebildschirm />;
+  if (loading) return <LoadingScreen />;
 
   // Mit Supabase-Projekt: ohne Anmeldung geht nichts.
   // Ohne Projekt: die App läuft im lokalen Modus weiter, damit man
   // sofort spielen kann und die Zugangsdaten später nachreicht.
-  if (cloud && !user) return <AnmeldeMaske />;
+  if (cloud && !user) return <LoginScreen />;
 
   return (
-    <KampagneProvider userId={user?.id ?? null}>
-      <SitzungProvider>
+    <CampaignProvider userId={user?.id ?? null}>
+      <SessionProvider>
         <GrandLineAssistant email={user?.email ?? null} />
-      </SitzungProvider>
-    </KampagneProvider>
+      </SessionProvider>
+    </CampaignProvider>
   );
 }

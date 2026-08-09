@@ -1,9 +1,3 @@
-/* ============================================================
-   Bildverarbeitung — clientseitig verkleinern, bevor irgendetwas
-   gespeichert oder hochgeladen wird. Der Prototyp-Code bleibt
-   sinnvoll: kleine Bilder sparen Transfer und Storage-Kosten.
-   ============================================================ */
-
 function dateiLesen(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -22,11 +16,6 @@ function bildLaden(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/**
- * Verkleinert ein Bild auf eine maximale Kantenlänge und senkt die
- * JPEG-Qualität so lange, bis die Data-URL unter das Limit passt.
- * `square` beschneidet vorher mittig auf ein Quadrat (Porträt, Flagge).
- */
 export async function loadImageScaled(
   file: File,
   maxEdge: number,
@@ -35,8 +24,8 @@ export async function loadImageScaled(
   const { square = false, limit = 900_000 } = opts;
   if (!file || !/^image\//.test(file.type)) throw new Error("Bitte ein Bild wählen");
 
-  const datenUrl = await dateiLesen(file);
-  const img = await bildLaden(datenUrl);
+  const dataUrl = await dateiLesen(file);
+  const img = await bildLaden(dataUrl);
 
   let w = img.width, h = img.height;
   let sx = 0, sy = 0, sw = w, sh = h;
@@ -70,13 +59,11 @@ export async function loadImageScaled(
   return url;
 }
 
-/** Kartenhintergrund: größere Kante erlaubt, großzügigeres Limit. */
-export function karteSkalieren(file: File): Promise<string> {
+export function scaleMapImage(file: File): Promise<string> {
   return loadImageScaled(file, 1600, { limit: 4_000_000 });
 }
 
-/** Data-URL → Blob, damit sie in den Supabase-Storage hochgeladen werden kann. */
-export async function datenUrlZuBlob(datenUrl: string): Promise<Blob> {
-  const res = await fetch(datenUrl);
+export async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
+  const res = await fetch(dataUrl);
   return await res.blob();
 }

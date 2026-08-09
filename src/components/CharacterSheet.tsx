@@ -1,14 +1,14 @@
 import { ATTRIBUTE, type AttributName, type FruchtRang, type Gegenstand, type Skill, type Waffe } from "../types";
-import { ausgleich, fruchtBilanz, mitVorzeichen, neueId } from "../lib/spiel";
-import { useKampagne } from "../state/KampagneContext";
-import { useSitzung } from "../state/SitzungContext";
+import { balanceValue, fruitBalance, withSign, newId } from "../lib/game";
+import { useCampaign } from "../state/CampaignContext";
+import { useSession } from "../state/SessionContext";
 import { exportPdf } from "../lib/pdf";
 import { NumberInput } from "./NumberInput";
 import { Tally } from "./Tally";
 
-export function Charakterbogen() {
-  const { chars, active, activeId, setActiveId, patch, charAnlegen, charLoeschen, jetztSpeichern, zeigeToast } = useKampagne();
-  const { probe, rollProbeFor, rollDamage } = useSitzung();
+export function CharacterSheet() {
+  const { chars, active, activeId, setActiveId, patch, addCharacter, removeCharacter, saveNow, showToast } = useCampaign();
+  const { probe, rollProbeFor, rollDamage } = useSession();
 
   const patchAtt = (name: AttributName, val: number) =>
     patch({ attribute: { ...active.attribute, [name]: val } });
@@ -17,7 +17,7 @@ export function Charakterbogen() {
   const patchItem = (id: string, p: Partial<Gegenstand>) =>
     patch({ habUndGut: active.habUndGut.map(it => (it.id === id ? { ...it, ...p } : it)) });
   const addItem = () =>
-    patch({ habUndGut: [...active.habUndGut, { id: neueId("g"), text: "", anzahl: 1 }] });
+    patch({ habUndGut: [...active.habUndGut, { id: newId("g"), text: "", anzahl: 1 }] });
   const delItem = (id: string) =>
     patch({ habUndGut: active.habUndGut.filter(it => it.id !== id) });
 
@@ -25,7 +25,7 @@ export function Charakterbogen() {
   const patchWeapon = (id: string, p: Partial<Waffe>) =>
     patch({ waffen: (active.waffen || []).map(w => (w.id === id ? { ...w, ...p } : w)) });
   const addWeapon = () =>
-    patch({ waffen: [...(active.waffen || []), { id: neueId("w"), name: "", att: "Nahkampf", schaden: "W6" }] });
+    patch({ waffen: [...(active.waffen || []), { id: newId("w"), name: "", att: "Nahkampf", schaden: "W6" }] });
   const delWeapon = (id: string) =>
     patch({ waffen: (active.waffen || []).filter(w => w.id !== id) });
 
@@ -33,7 +33,7 @@ export function Charakterbogen() {
   const patchSkill = (id: string, p: Partial<Skill>) =>
     patch({ skills: (active.skills || []).map(sk => (sk.id === id ? { ...sk, ...p } : sk)) });
   const addSkill = () =>
-    patch({ skills: [...(active.skills || []), { id: neueId("s"), name: "", att: "", beschreibung: "" }] });
+    patch({ skills: [...(active.skills || []), { id: newId("s"), name: "", att: "", beschreibung: "" }] });
   const delSkill = (id: string) =>
     patch({ skills: (active.skills || []).filter(sk => sk.id !== id) });
 
@@ -46,7 +46,7 @@ export function Charakterbogen() {
   const addRang = () =>
     patchFrucht({
       raenge: [...(frucht.raenge || []), {
-        id: neueId("r"), name: "", beschreibung: "", kostenLevel: 1,
+        id: newId("r"), name: "", beschreibung: "", kostenLevel: 1,
         wurfTyp: "" as const, wurfAtt: "Nahkampf" as AttributName, wurfSchaden: "W6",
         kostenText: "", unlocked: false,
       }],
@@ -61,7 +61,7 @@ export function Charakterbogen() {
     }
   };
 
-  const bil = fruchtBilanz(active.stufe, frucht.raenge);
+  const bil = fruitBalance(active.stufe, frucht.raenge);
 
   return (
     <div style={{ padding: "0 14px" }}>
@@ -75,7 +75,7 @@ export function Charakterbogen() {
             {c.name || "Namenlos"}
           </button>
         ))}
-        <button className="char-chip" onClick={charAnlegen}>+ Neuer Charakter</button>
+        <button className="char-chip" onClick={addCharacter}>+ Neuer Charakter</button>
       </div>
 
       <div className="sheet">
@@ -246,10 +246,10 @@ export function Charakterbogen() {
             </div>
           </div>
 
-          <div className={`frucht-budget ${bil.verfuegbar < 0 ? "over" : ""}`}>
-            {bil.verfuegbar < 0
-              ? `Überzogen um ${-bil.verfuegbar} Level — sperre einen Rang oder erhöhe die Stufe`
-              : `${bil.verfuegbar} von ${active.stufe} Leveln frei für neue Ränge`}
+          <div className={`frucht-budget ${bil.available < 0 ? "over" : ""}`}>
+            {bil.available < 0
+              ? `Überzogen um ${-bil.available} Level — sperre einen Rang oder erhöhe die Stufe`
+              : `${bil.available} von ${active.stufe} Leveln frei für neue Ränge`}
           </div>
 
           {(frucht.raenge || []).length === 0 && (
@@ -341,7 +341,7 @@ export function Charakterbogen() {
               <div className="att-cell" key={a}>
                 <div className="att-circle">
                   <NumberInput min={1} max={20} value={lvl} onChange={v => patchAtt(a, v)} ariaLabel={`${a} Level`} />
-                  <span className="att-mod">{mitVorzeichen(ausgleich(lvl))}</span>
+                  <span className="att-mod">{withSign(balanceValue(lvl))}</span>
                 </div>
                 <span className="att-name">{a}</span>
                 <button className="att-roll" onClick={() => probe(a)}>Probe 🎲</button>
@@ -352,9 +352,9 @@ export function Charakterbogen() {
       </div>
 
       <div className="save-bar">
-        {chars.length > 1 && <button className="gla-btn" onClick={charLoeschen}>Charakter löschen</button>}
-        <button className="gla-btn" onClick={() => exportPdf(active, zeigeToast)}>Als PDF / drucken</button>
-        <button className="gla-btn" onClick={() => jetztSpeichern("chars")}>Speichern</button>
+        {chars.length > 1 && <button className="gla-btn" onClick={removeCharacter}>Charakter löschen</button>}
+        <button className="gla-btn" onClick={() => exportPdf(active, showToast)}>Als PDF / drucken</button>
+        <button className="gla-btn" onClick={() => saveNow("chars")}>Speichern</button>
       </div>
     </div>
   );

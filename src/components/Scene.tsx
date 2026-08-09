@@ -1,8 +1,8 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { BodenArt, DetailObjekt } from "../types";
-import { neueId } from "../lib/spiel";
-import { useKampagne } from "../state/KampagneContext";
-import { useSitzung } from "../state/SitzungContext";
+import { newId } from "../lib/game";
+import { useCampaign } from "../state/CampaignContext";
+import { useSession } from "../state/SessionContext";
 
 const DET_FLOORS: Record<BodenArt, string> = {
   stein: "#8a857c", holz: "#a9793f", gras: "#5a9e52", wasser: "#2b6d8f", sand: "#e3d29a",
@@ -16,9 +16,9 @@ const BOEDEN = Object.keys(DET_FLOORS) as BodenArt[];
 type Werkzeug = "rect" | "circle" | "wall" | "door" | "label" | "select";
 interface Entwurf { tool: Werkzeug; x1: number; y1: number; x2: number; y2: number }
 
-export function Schauplatz() {
-  const { schauplatz, setSchauplatz, setKarte, speicher, jetztSpeichern, zeigeToast } = useKampagne();
-  const { setTab } = useSitzung();
+export function Scene() {
+  const { scene, setScene, setMap, storage, saveNow, showToast } = useCampaign();
+  const { setTab } = useSession();
 
   const [tool, setTool] = useState<Werkzeug>("rect");
   const [floor, setFloor] = useState<BodenArt>("stein");
@@ -29,9 +29,9 @@ export function Schauplatz() {
   const draftRef = useRef<Entwurf | null>(null);
   const dragRef = useRef<{ id: string; pointerId: number; offX: number; offY: number } | null>(null);
 
-  const objects = schauplatz.objects;
+  const objects = scene.objects;
   const setObjects = (f: (os: DetailObjekt[]) => DetailObjekt[]) =>
-    setSchauplatz(s => ({ ...s, objects: f(s.objects) }));
+    setScene(s => ({ ...s, objects: f(s.objects) }));
 
   /* ---- Mausposition → Prozentkoordinaten im SVG (optional gerastert) ---- */
   function punkt(e: ReactPointerEvent<SVGSVGElement>, rastern: boolean) {
@@ -73,7 +73,7 @@ export function Schauplatz() {
       const p = punkt(e, false);
       const text = window.prompt("Beschriftung:", "");
       if (text != null && text.trim()) {
-        setObjects(os => [...os, { id: neueId("o"), type: "label", x: p.x, y: p.y, text: text.trim().slice(0, 40) }]);
+        setObjects(os => [...os, { id: newId("o"), type: "label", x: p.x, y: p.y, text: text.trim().slice(0, 40) }]);
       }
       return;
     }
@@ -127,7 +127,7 @@ export function Schauplatz() {
     draftRef.current = null;
     setDraft(null);
     const { tool: t, x1, y1, x2, y2 } = entwurf;
-    const id = neueId("o");
+    const id = newId("o");
     if (t === "rect") {
       const x = Math.min(x1, x2), y = Math.min(y1, y2);
       const w = Math.abs(x2 - x1), h = Math.abs(y2 - y1);
@@ -179,15 +179,15 @@ export function Schauplatz() {
       if (!ctx) return;
       ctx.drawImage(img, 0, 0, cv.width, cv.height);
       try {
-        const wert = await speicher.bildSpeichern(cv.toDataURL("image/jpeg", 0.88));
-        setKarte(k => ({ ...k, bg: wert }));
+        const wert = await storage.bildSpeichern(cv.toDataURL("image/jpeg", 0.88));
+        setMap(k => ({ ...k, bg: wert }));
         setTab("karte");
-        zeigeToast("Detailkarte als Karte übernommen ⚓");
+        showToast("Detailkarte als Karte übernommen ⚓");
       } catch (err) {
-        zeigeToast(err instanceof Error ? err.message : "Übernahme fehlgeschlagen");
+        showToast(err instanceof Error ? err.message : "Übernahme fehlgeschlagen");
       }
     };
-    img.onerror = () => zeigeToast("Übernahme fehlgeschlagen");
+    img.onerror = () => showToast("Übernahme fehlgeschlagen");
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
   }
 
@@ -215,8 +215,8 @@ export function Schauplatz() {
             ))}
             <span className="map-sep" />
             <span className="tool-label" style={{ minWidth: "auto" }}>Grund:</span>
-            <select className="det-bg-sel" value={schauplatz.bg} aria-label="Grundboden"
-              onChange={e => setSchauplatz(s => ({ ...s, bg: e.target.value as BodenArt }))}>
+            <select className="det-bg-sel" value={scene.bg} aria-label="Grundboden"
+              onChange={e => setScene(s => ({ ...s, bg: e.target.value as BodenArt }))}>
               {BOEDEN.map(f => <option key={f} value={f}>{DET_FLOOR_LABELS[f]}</option>)}
             </select>
             <button className={`det-tbtn ${snap ? "on" : ""}`} onClick={() => setSnap(v => !v)} title="Am Raster fangen">⊞ Raster-Fang</button>
@@ -237,7 +237,7 @@ export function Schauplatz() {
             style={{ touchAction: "none", cursor: tool === "select" ? "grab" : "crosshair" }}
           >
             {/* Grundboden */}
-            <rect x="0" y="0" width="100" height="66" fill={DET_FLOORS[schauplatz.bg]} />
+            <rect x="0" y="0" width="100" height="66" fill={DET_FLOORS[scene.bg]} />
             {/* Kampfraster */}
             <g className="det-grid-lines">
               {Array.from({ length: DET_GRID + 1 }).map((_, i) => (
@@ -308,7 +308,7 @@ export function Schauplatz() {
           <span style={{ flex: 1 }} />
           <button className="gla-btn" onClick={() => setObjects(os => os.slice(0, -1))}>↶ Rückgängig</button>
           <button className="gla-btn" onClick={() => setObjects(() => [])}>Leeren</button>
-          <button className="gla-btn" onClick={() => jetztSpeichern("schauplatz")}>Speichern</button>
+          <button className="gla-btn" onClick={() => saveNow("scene")}>Speichern</button>
           <button className="gla-btn primary" onClick={alsKarteUebernehmen}>Als Karte übernehmen →</button>
         </div>
       </div>
