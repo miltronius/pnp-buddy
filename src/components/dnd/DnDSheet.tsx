@@ -19,22 +19,22 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
   const t = useT();
   const { lang } = useLang();
   const { ABILITY_NAMES, ABILITY_SHORT } = useGameLabels();
-  const pb = proficiencyBonus(char.stufe);
+  const pb = proficiencyBonus(char.level);
   const [bestaetigung, setBestaetigung] = useState(false);
 
   function setAttr(key: AbilityKey, val: string) {
     const n = Math.max(1, Math.min(30, parseInt(val) || 10));
-    setField('attribute', { ...char.attribute, [key]: n });
+    setField('attrs', { ...char.attrs, [key]: n });
   }
 
   function toggleRetProfi(key: AbilityKey) {
-    const hat = char.rettungswurf_profis.includes(key);
-    setField('rettungswurf_profis', hat
-      ? char.rettungswurf_profis.filter(x => x !== key)
-      : [...char.rettungswurf_profis, key]);
+    const hat = char.saveProficiencies.includes(key);
+    setField('saveProficiencies', hat
+      ? char.saveProficiencies.filter(x => x !== key)
+      : [...char.saveProficiencies, key]);
   }
 
-  const vorschau = bestaetigung ? klasseVorschau(char.klasse, char.unterklasse, char.stufe, lang) : null;
+  const vorschau = bestaetigung ? klasseVorschau(char.charClass, char.subclass, char.level, lang) : null;
 
   function bestaetigeAnwenden() {
     applyClass();
@@ -54,9 +54,9 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
           <div className="field-label">{t.dnd_species}</div>
           <Autocomplete
             className="gla-input"
-            value={char.rasse}
+            value={char.species}
             optionen={alleSpeziesNamen(lang)}
-            onChange={v => setField('rasse', v)}
+            onChange={v => setField('species', v)}
             dropdown
           />
         </div>
@@ -64,9 +64,9 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
           <div className="field-label">{t.dnd_class}</div>
           <Autocomplete
             className="gla-input"
-            value={char.klasse}
+            value={char.charClass}
             optionen={alleKlassenNamen(lang)}
-            onChange={v => { setField('klasse', v); setField('unterklasse', ''); setBestaetigung(false); }}
+            onChange={v => { setField('charClass', v); setField('subclass', ''); setBestaetigung(false); }}
             dropdown
           />
         </div>
@@ -74,9 +74,9 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
           <div className="field-label">{t.dnd_subclass}</div>
           <Autocomplete
             className="gla-input"
-            value={char.unterklasse}
-            optionen={unterklassenFuerKlasse(char.klasse, lang)}
-            onChange={v => { setField('unterklasse', v); setBestaetigung(false); }}
+            value={char.subclass}
+            optionen={unterklassenFuerKlasse(char.charClass, lang)}
+            onChange={v => { setField('subclass', v); setBestaetigung(false); }}
             dropdown
           />
         </div>
@@ -84,17 +84,17 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
           <div className="field-label">{t.dnd_background}</div>
           <Autocomplete
             className="gla-input"
-            value={char.hintergrund}
+            value={char.background}
             optionen={alleHintergruende(lang)}
-            onChange={v => setField('hintergrund', v)}
+            onChange={v => setField('background', v)}
             dropdown
           />
         </div>
         <div>
           <div className="field-label">{t.level}</div>
           <input className="gla-input" type="number" min={1} max={20}
-            value={char.stufe}
-            onChange={e => { setField('stufe', Math.max(1, Math.min(20, parseInt(e.target.value) || 1))); setBestaetigung(false); }} />
+            value={char.level}
+            onChange={e => { setField('level', Math.max(1, Math.min(20, parseInt(e.target.value) || 1))); setBestaetigung(false); }} />
         </div>
       </div>
 
@@ -104,7 +104,7 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
           <button
             className="gla-btn"
             style={{ fontSize: 13, padding: '5px 14px' }}
-            disabled={!char.klasse.trim()}
+            disabled={!char.charClass.trim()}
             onClick={() => setBestaetigung(true)}
             title={t.dnd_apply_class_title}
           >{t.dnd_apply_class}</button>
@@ -116,7 +116,7 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
               <span>
                 <strong>{vorschau.klasseName}</strong>
                 {vorschau.unterklasseName && ` (${vorschau.unterklasseName}${!vorschau.unterklasseErkannt ? ' – ?' : ''})`}
-                {` ${t.level} ${char.stufe}`}:
+                {` ${t.level} ${char.level}`}:
                 {` ${vorschau.merkmaleAnzahl} ${t.dnd_apply_features}`}
                 {vorschau.ressourcenAnzahl > 0 && `, ${vorschau.ressourcenAnzahl} ${t.dnd_apply_resources}`}
                 {vorschau.hatSchlitze && `, ${t.dnd_apply_slots}`}.
@@ -125,7 +125,7 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
               <button className="gla-btn primary" style={{ fontSize: 13, padding: '4px 12px' }} onClick={bestaetigeAnwenden}>{t.dnd_apply_confirm}</button>
             </>
           ) : (
-            <span style={{ opacity: 0.7 }}>„{char.klasse}" — {t.dnd_apply_unknown}</span>
+            <span style={{ opacity: 0.7 }}>„{char.charClass}" — {t.dnd_apply_unknown}</span>
           )}
           <button className="gla-btn" style={{ fontSize: 13, padding: '4px 10px' }} onClick={() => setBestaetigung(false)}>✕</button>
         </div>
@@ -140,30 +140,30 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
         <div className="dnd-kampf-box">
           <div className="dnd-kampf-label">{t.dnd_ac}</div>
           <input className="dnd-kampf-input" type="number" min={0} max={30}
-            value={char.ruestungsklasse}
-            onChange={e => setField('ruestungsklasse', parseInt(e.target.value) || 10)} />
+            value={char.armorClass}
+            onChange={e => setField('armorClass', parseInt(e.target.value) || 10)} />
         </div>
         <div className="dnd-kampf-box">
           <div className="dnd-kampf-label">{t.dnd_hp}</div>
           <div className="dnd-hp-row">
             <button className="dnd-hp-btn"
-              onClick={() => setField('lebenspunkte', Math.max(0, char.lebenspunkte - 1))}>−</button>
+              onClick={() => setField('hp', Math.max(0, char.hp - 1))}>−</button>
             <input className="dnd-kampf-input" type="number" min={0} max={9999}
-              value={char.lebenspunkte}
-              onChange={e => setField('lebenspunkte', parseInt(e.target.value) || 0)} />
+              value={char.hp}
+              onChange={e => setField('hp', parseInt(e.target.value) || 0)} />
             <span className="dnd-hp-sep">/ <input className="dnd-kampf-input-small" type="number" min={1} max={9999}
-              value={char.maxLebenspunkte}
-              onChange={e => setField('maxLebenspunkte', parseInt(e.target.value) || 1)} /></span>
+              value={char.maxHp}
+              onChange={e => setField('maxHp', parseInt(e.target.value) || 1)} /></span>
             <button className="dnd-hp-btn"
-              onClick={() => setField('lebenspunkte', Math.min(char.maxLebenspunkte, char.lebenspunkte + 1))}>+</button>
+              onClick={() => setField('hp', Math.min(char.maxHp, char.hp + 1))}>+</button>
           </div>
         </div>
         <div className="dnd-kampf-box">
           <div className="dnd-kampf-label">{t.dnd_speed}</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
             <input className="dnd-kampf-input" type="number" min={0} max={200}
-              value={char.geschwindigkeit}
-              onChange={e => setField('geschwindigkeit', parseInt(e.target.value) || 30)} />
+              value={char.speed}
+              onChange={e => setField('speed', parseInt(e.target.value) || 30)} />
             <span style={{ fontSize: 12, opacity: 0.6 }}>{t.dnd_speed_unit}</span>
           </div>
         </div>
@@ -178,7 +178,7 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
       {/* Attribute */}
       <div className="dnd-attr-grid">
         {ABILITIES.map(key => {
-          const val = char.attribute[key];
+          const val = char.attrs[key];
           const mod = attributMod(val);
           return (
             <div key={key} className="dnd-attr-box">
@@ -198,7 +198,7 @@ export function DnDSheet({ char, setField, applyClass, setMetamagic }: Props) {
       <div className="dnd-saves-grid">
         {ABILITIES.map(key => {
           const mod = savingThrowMod(key, char);
-          const profi = char.rettungswurf_profis.includes(key);
+          const profi = char.saveProficiencies.includes(key);
           return (
             <label key={key} className="dnd-save-row" onClick={() => toggleRetProfi(key)}>
               <span className={`dnd-profi-dot ${profi ? 'active' : ''}`} />

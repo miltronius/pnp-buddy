@@ -63,7 +63,7 @@ const PAKT: [number, number][] = [
 function tableToSlots(reihe: number[]): Record<number, DnDSlotLevel> {
   const result: Record<number, DnDSlotLevel> = {};
   reihe.forEach((max, i) => {
-    if (max > 0) result[i + 1] = { max, aktuell: max };
+    if (max > 0) result[i + 1] = { max, current: max };
   });
   return result;
 }
@@ -78,7 +78,7 @@ function halfCasterSlots(stufe: number): Record<number, DnDSlotLevel> {
 
 function pactSlots(stufe: number): Record<number, DnDSlotLevel> {
   const [num, rank] = PAKT[Math.min(stufe, 20) - 1];
-  return { [rank]: { max: num, aktuell: num } };
+  return { [rank]: { max: num, current: num } };
 }
 
 // ── Type definitions ───────────────────────────────────────────────────────
@@ -140,7 +140,7 @@ const KLASSEN: ClassDef[] = [
       { stufe: 20, herkunft: 'CLASS', name: 'Magische Wiederherstellung', description: 'Nach kurzer Rast: 4 Zauberpunkte zurückgewinnen.' },
     ],
     ressourcen: (stufe) => stufe >= 2
-      ? [{ name: 'Zauberpunkte', max: stufe, aktuell: stufe, aufladung: 'LONG_REST' }]
+      ? [{ name: 'Zauberpunkte', max: stufe, current: stufe, recharge: 'LONG_REST' }]
       : [],
     unterklassen: [
       {
@@ -337,7 +337,7 @@ const KLASSEN: ClassDef[] = [
     ressourcen: (stufe) => {
       const chaMod = 0; // unknown at apply time, user sets CHA separately
       const max = Math.max(1, chaMod);
-      return [{ name: 'Bardische Inspiration', max, aktuell: max, aufladung: stufe >= 5 ? 'SHORT_REST' : 'LONG_REST' }];
+      return [{ name: 'Bardische Inspiration', max, current: max, recharge: stufe >= 5 ? 'SHORT_REST' : 'LONG_REST' }];
     },
     unterklassen: [],
   },
@@ -503,7 +503,7 @@ const KLASSEN: ClassDef[] = [
     ],
     ressourcen: (stufe) => {
       const max = stufe < 3 ? 2 : stufe < 6 ? 3 : stufe < 12 ? 4 : stufe < 17 ? 5 : stufe < 20 ? 6 : 999;
-      return [{ name: 'Raserei', max: max === 999 ? 99 : max, aktuell: max === 999 ? 99 : max, aufladung: 'LONG_REST' }];
+      return [{ name: 'Raserei', max: max === 999 ? 99 : max, current: max === 999 ? 99 : max, recharge: 'LONG_REST' }];
     },
     unterklassen: [],
   },
@@ -539,8 +539,8 @@ const KLASSEN: ClassDef[] = [
       { stufe: 20, herkunft: 'CLASS', name: 'Mehrangriff (4)', description: '4 Angriffe pro Angriffs-Aktion.' },
     ],
     ressourcen: (stufe) => [
-      { name: 'Zweiter Atem', max: 1, aktuell: 1, aufladung: 'SHORT_REST' },
-      { name: 'Aktionsschwall', max: stufe >= 17 ? 2 : 1, aktuell: stufe >= 17 ? 2 : 1, aufladung: 'SHORT_REST' },
+      { name: 'Zweiter Atem', max: 1, current: 1, recharge: 'SHORT_REST' },
+      { name: 'Aktionsschwall', max: stufe >= 17 ? 2 : 1, current: stufe >= 17 ? 2 : 1, recharge: 'SHORT_REST' },
     ],
     unterklassen: [],
   },
@@ -570,7 +570,7 @@ const KLASSEN: ClassDef[] = [
       { stufe: 20, herkunft: 'CLASS', name: 'Perfekte Seele', description: 'Am Beginn jedes Zuges: 4 Ki-Punkte zurückgewinnen.' },
     ],
     ressourcen: (stufe) => [
-      { name: 'Ki-Punkte', max: stufe, aktuell: stufe, aufladung: 'SHORT_REST' },
+      { name: 'Ki-Punkte', max: stufe, current: stufe, recharge: 'SHORT_REST' },
     ],
     unterklassen: [],
   },
@@ -675,23 +675,23 @@ export function findSubclass(kl: ClassDef, name: string): SubclassDef | undefine
 // ── Apply class to character ───────────────────────────────────────────────
 
 export function applyClassToCharacter(char: DnDCharacter): DnDCharacter {
-  const kl = findClass(char.klasse);
+  const kl = findClass(char.charClass);
   if (!kl) return char;
 
-  const ukl = findSubclass(kl, char.unterklasse);
-  const stufe = char.stufe;
+  const ukl = findSubclass(kl, char.subclass);
+  const stufe = char.level;
 
   // Build new slot map (keep existing if class has no spells)
-  const neueSchlitze = kl.schlitze ? kl.schlitze(stufe) : char.zauberschlitze;
+  const neueSchlitze = kl.schlitze ? kl.schlitze(stufe) : char.spellSlots;
 
   // Merge saving throw proficiencies (add, never remove)
-  const neueRettungen = Array.from(new Set([...char.rettungswurf_profis, ...kl.rettungswuerfe]));
+  const neueRettungen = Array.from(new Set([...char.saveProficiencies, ...kl.rettungswuerfe]));
 
   // Build features: remove CLASS/SUBCLASS, then add up to current level
-  const bestehende = char.merkmale.filter(m => m.herkunft !== 'CLASS' && m.herkunft !== 'SUBCLASS');
+  const bestehende = char.features.filter(m => m.origin !== 'CLASS' && m.origin !== 'SUBCLASS');
   const klasseMerkmale: Omit<DnDFeature, 'id'>[] = [
-    ...kl.merkmale.filter(m => m.stufe <= stufe),
-    ...(ukl ? ukl.merkmale.filter(m => m.stufe <= stufe) : []),
+    ...kl.merkmale.filter(m => m.stufe <= stufe).map(m => ({ name: m.name, description: m.description, origin: m.herkunft as 'CLASS' | 'SUBCLASS' })),
+    ...(ukl ? ukl.merkmale.filter(m => m.stufe <= stufe).map(m => ({ name: m.name, description: m.description, origin: m.herkunft as 'CLASS' | 'SUBCLASS' })) : []),
   ];
   const neueMerkmale: DnDFeature[] = [
     ...bestehende,
@@ -700,11 +700,11 @@ export function applyClassToCharacter(char: DnDCharacter): DnDCharacter {
 
   // Resources: update by name, add new ones
   const defRes = kl.ressourcen(stufe);
-  const aktRessourcen = [...char.ressourcen];
+  const aktRessourcen = [...char.resources];
   for (const r of defRes) {
     const idx = aktRessourcen.findIndex(x => x.name === r.name);
     if (idx >= 0) {
-      aktRessourcen[idx] = { ...aktRessourcen[idx], max: r.max, aufladung: r.aufladung };
+      aktRessourcen[idx] = { ...aktRessourcen[idx], max: r.max, recharge: r.recharge };
     } else {
       aktRessourcen.push({ ...r, id: newId() });
     }
@@ -712,13 +712,13 @@ export function applyClassToCharacter(char: DnDCharacter): DnDCharacter {
 
   // Spell grants: only replace CLASS/SUBCLASS spells when the class/subclass
   // actually defines zauberGrants — otherwise leave the user's spell list alone.
-  const grants: { stufe: number; slug: string; herkunft: 'CLASS' | 'SUBCLASS' }[] = [
-    ...(kl.zauberGrants ?? []).map(g => ({ ...g, herkunft: 'CLASS' as const })),
-    ...(ukl?.zauberGrants ?? []).map(g => ({ ...g, herkunft: 'SUBCLASS' as const })),
+  const grants: { stufe: number; slug: string; origin: 'CLASS' | 'SUBCLASS' }[] = [
+    ...(kl.zauberGrants ?? []).map(g => ({ ...g, origin: 'CLASS' as const })),
+    ...(ukl?.zauberGrants ?? []).map(g => ({ ...g, origin: 'SUBCLASS' as const })),
   ];
   const neueZauber: DnDSpell[] = grants.length > 0
     ? (() => {
-        const basis = char.zauber.filter(z => z.herkunft !== 'CLASS' && z.herkunft !== 'SUBCLASS');
+        const basis = char.spells.filter(z => z.origin !== 'CLASS' && z.origin !== 'SUBCLASS');
         for (const g of grants) {
           if (g.stufe > stufe) continue;
           const eintrag = spellNachSlug(g.slug);
@@ -727,29 +727,29 @@ export function applyClassToCharacter(char: DnDCharacter): DnDCharacter {
             id: newId(),
             name: eintrag.nameDe,
             nameEn: eintrag.name,
-            stufe: eintrag.stufe,
-            schule: eintrag.schule,
-            herkunft: g.herkunft,
-            aktion: eintrag.aktion as ActionType,
-            konzentration: eintrag.konzentration,
+            level: eintrag.stufe,
+            school: eintrag.schule,
+            origin: g.origin,
+            action: eintrag.aktion as ActionType,
+            concentration: eintrag.konzentration,
             description: eintrag.beschreibung,
-            komponenten: eintrag.komponenten,
-            reichweite: eintrag.reichweite,
+            components: eintrag.komponenten,
+            range: eintrag.reichweite,
             isHomebrew: eintrag.isHomebrew,
             slug: eintrag.slug,
           });
         }
         return basis;
       })()
-    : char.zauber;
+    : char.spells;
 
   return {
     ...char,
-    zauberschlitze: neueSchlitze,
-    rettungswurf_profis: neueRettungen as AbilityKey[],
-    merkmale: neueMerkmale,
-    ressourcen: aktRessourcen,
-    zauber: neueZauber,
+    spellSlots: neueSchlitze,
+    saveProficiencies: neueRettungen as AbilityKey[],
+    features: neueMerkmale,
+    resources: aktRessourcen,
+    spells: neueZauber,
   };
 }
 

@@ -37,17 +37,17 @@ export function useDnDCharacter() {
 
   const useSlot = useCallback((stufe: number) => {
     setChar(c => {
-      const s = c.zauberschlitze[stufe];
-      if (!s || s.aktuell <= 0) return c;
-      return { ...c, zauberschlitze: { ...c.zauberschlitze, [stufe]: { ...s, aktuell: s.aktuell - 1 } } };
+      const s = c.spellSlots[stufe];
+      if (!s || s.current <= 0) return c;
+      return { ...c, spellSlots: { ...c.spellSlots, [stufe]: { ...s, current: s.current - 1 } } };
     });
   }, [setChar]);
 
   const refillSlot = useCallback((stufe: number) => {
     setChar(c => {
-      const s = c.zauberschlitze[stufe];
-      if (!s || s.aktuell >= s.max) return c;
-      return { ...c, zauberschlitze: { ...c.zauberschlitze, [stufe]: { ...s, aktuell: s.aktuell + 1 } } };
+      const s = c.spellSlots[stufe];
+      if (!s || s.current >= s.max) return c;
+      return { ...c, spellSlots: { ...c.spellSlots, [stufe]: { ...s, current: s.current + 1 } } };
     });
   }, [setChar]);
 
@@ -55,30 +55,30 @@ export function useDnDCharacter() {
     setChar(c => {
       if (max <= 0) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { [stufe]: _, ...rest } = c.zauberschlitze;
-        return { ...c, zauberschlitze: rest };
+        const { [stufe]: _, ...rest } = c.spellSlots;
+        return { ...c, spellSlots: rest };
       }
-      const prev = c.zauberschlitze[stufe];
-      const slot: DnDSlotLevel = { max, aktuell: Math.min(prev?.aktuell ?? max, max) };
-      return { ...c, zauberschlitze: { ...c.zauberschlitze, [stufe]: slot } };
+      const prev = c.spellSlots[stufe];
+      const slot: DnDSlotLevel = { max, current: Math.min(prev?.current ?? max, max) };
+      return { ...c, spellSlots: { ...c.spellSlots, [stufe]: slot } };
     });
   }, [setChar]);
 
   const longRest = useCallback(() => {
     setChar(c => ({
       ...c,
-      zauberschlitze: Object.fromEntries(
-        Object.entries(c.zauberschlitze).map(([k, v]) => [k, { ...v, aktuell: v.max }])
+      spellSlots: Object.fromEntries(
+        Object.entries(c.spellSlots).map(([k, v]) => [k, { ...v, current: v.max }])
       ),
-      ressourcen: c.ressourcen.map(r => ({ ...r, aktuell: r.max })),
+      resources: c.resources.map(r => ({ ...r, current: r.max })),
     }));
   }, [setChar]);
 
   const shortRest = useCallback(() => {
     setChar(c => ({
       ...c,
-      ressourcen: c.ressourcen.map(r =>
-        r.aufladung === 'SHORT_REST' ? { ...r, aktuell: r.max } : r
+      resources: c.resources.map(r =>
+        r.recharge === 'SHORT_REST' ? { ...r, current: r.max } : r
       ),
     }));
   }, [setChar]);
@@ -86,38 +86,38 @@ export function useDnDCharacter() {
   /* ---------- Concentration ---------- */
 
   const setConcentration = useCallback((id: string | null) => {
-    setChar(c => ({ ...c, konzentration: id }));
+    setChar(c => ({ ...c, concentration: id }));
   }, [setChar]);
 
   /* ---------- Features ---------- */
 
   const addFeature = useCallback((m: Omit<DnDFeature, 'id'>) => {
-    setChar(c => ({ ...c, merkmale: [...c.merkmale, { ...m, id: newId() }] }));
+    setChar(c => ({ ...c, features: [...c.features, { ...m, id: newId() }] }));
   }, [setChar]);
 
   const updateFeature = useCallback((m: DnDFeature) => {
-    setChar(c => ({ ...c, merkmale: c.merkmale.map(x => x.id === m.id ? m : x) }));
+    setChar(c => ({ ...c, features: c.features.map(x => x.id === m.id ? m : x) }));
   }, [setChar]);
 
   const removeFeature = useCallback((id: string) => {
-    setChar(c => ({ ...c, merkmale: c.merkmale.filter(x => x.id !== id) }));
+    setChar(c => ({ ...c, features: c.features.filter(x => x.id !== id) }));
   }, [setChar]);
 
   /* ---------- Spells ---------- */
 
   const addSpell = useCallback((z: Omit<DnDSpell, 'id'>) => {
-    setChar(c => ({ ...c, zauber: [...c.zauber, { ...z, id: newId() }] }));
+    setChar(c => ({ ...c, spells: [...c.spells, { ...z, id: newId() }] }));
   }, [setChar]);
 
   const updateSpell = useCallback((z: DnDSpell) => {
-    setChar(c => ({ ...c, zauber: c.zauber.map(x => x.id === z.id ? z : x) }));
+    setChar(c => ({ ...c, spells: c.spells.map(x => x.id === z.id ? z : x) }));
   }, [setChar]);
 
   const removeSpell = useCallback((id: string) => {
     setChar(c => ({
       ...c,
-      zauber: c.zauber.filter(x => x.id !== id),
-      konzentration: c.konzentration === id ? null : c.konzentration,
+      spells: c.spells.filter(x => x.id !== id),
+      concentration: c.concentration === id ? null : c.concentration,
     }));
   }, [setChar]);
 
@@ -126,8 +126,8 @@ export function useDnDCharacter() {
   const useResource = useCallback((id: string) => {
     setChar(c => ({
       ...c,
-      ressourcen: c.ressourcen.map(r =>
-        r.id === id && r.aktuell > 0 ? { ...r, aktuell: r.aktuell - 1 } : r
+      resources: c.resources.map(r =>
+        r.id === id && r.current > 0 ? { ...r, current: r.current - 1 } : r
       ),
     }));
   }, [setChar]);
@@ -135,22 +135,22 @@ export function useDnDCharacter() {
   const refillResource = useCallback((id: string) => {
     setChar(c => ({
       ...c,
-      ressourcen: c.ressourcen.map(r =>
-        r.id === id && r.aktuell < r.max ? { ...r, aktuell: r.aktuell + 1 } : r
+      resources: c.resources.map(r =>
+        r.id === id && r.current < r.max ? { ...r, current: r.current + 1 } : r
       ),
     }));
   }, [setChar]);
 
   const addResource = useCallback((r: Omit<DnDResource, 'id'>) => {
-    setChar(c => ({ ...c, ressourcen: [...c.ressourcen, { ...r, id: newId() }] }));
+    setChar(c => ({ ...c, resources: [...c.resources, { ...r, id: newId() }] }));
   }, [setChar]);
 
   const updateResource = useCallback((r: DnDResource) => {
-    setChar(c => ({ ...c, ressourcen: c.ressourcen.map(x => x.id === r.id ? r : x) }));
+    setChar(c => ({ ...c, resources: c.resources.map(x => x.id === r.id ? r : x) }));
   }, [setChar]);
 
   const removeResource = useCallback((id: string) => {
-    setChar(c => ({ ...c, ressourcen: c.ressourcen.filter(x => x.id !== id) }));
+    setChar(c => ({ ...c, resources: c.resources.filter(x => x.id !== id) }));
   }, [setChar]);
 
   const applyClass = useCallback(() => {

@@ -21,12 +21,12 @@ function readBool(key: string, def: boolean): boolean {
 }
 
 const LEER_ZAUBER: Omit<DnDSpellType, 'id'> = {
-  name: '', stufe: 0, schule: '', herkunft: 'CLASS',
-  aktion: 'ACTION', konzentration: false, description: '', komponenten: 'V, S', reichweite: '',
+  name: '', level: 0, school: '', origin: 'CLASS',
+  action: 'ACTION', concentration: false, description: '', components: 'V, S', range: '',
 };
 
 const LEER_RESSOURCE: Omit<DnDResource, 'id'> = {
-  name: '', max: 1, aktuell: 1, aufladung: 'LONG_REST',
+  name: '', max: 1, current: 1, recharge: 'LONG_REST',
 };
 
 interface Props {
@@ -69,15 +69,15 @@ export function DnDSpells({
   const [dbErgebnisse, setDbErgebnisse] = useState<SpellDBEintrag[]>([]);
   const [zeigeHomebrew, setZeigeHomebrew] = useState(() => readBool(LS_ZEIGE_HOMEBREW, false));
 
-  const konzZauber = char.konzentration
-    ? char.zauber.find(z => z.id === char.konzentration)
+  const konzZauber = char.concentration
+    ? char.spells.find(z => z.id === char.concentration)
     : null;
 
-  const aktiveSlots = SLOT_STUFEN.filter(s => char.zauberschlitze[s]?.max > 0);
+  const aktiveSlots = SLOT_STUFEN.filter(s => char.spellSlots[s]?.max > 0);
 
-  const sichtbareZauber = char.zauber
-    .filter(z => filterStufe === 'all' || z.stufe === filterStufe)
-    .sort((a, b) => a.stufe - b.stufe || a.name.localeCompare(b.name));
+  const sichtbareZauber = char.spells
+    .filter(z => filterStufe === 'all' || z.level === filterStufe)
+    .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
 
   function toggleZeigeHomebrew() {
     setZeigeHomebrew(h => {
@@ -115,9 +115,9 @@ export function DnDSpells({
   function oeffneBearbeiten(z: DnDSpellType) {
     setBearbeitenId(z.id);
     setFormDaten({
-      name: z.name, nameEn: z.nameEn, stufe: z.stufe, schule: z.schule, herkunft: z.herkunft,
-      aktion: z.aktion, konzentration: z.konzentration, description: z.description,
-      komponenten: z.komponenten, reichweite: z.reichweite,
+      name: z.name, nameEn: z.nameEn, level: z.level, school: z.school, origin: z.origin,
+      action: z.action, concentration: z.concentration, description: z.description,
+      components: z.components, range: z.range,
       isHomebrew: z.isHomebrew, slug: z.slug,
     });
     setZauberForm(true);
@@ -131,7 +131,7 @@ export function DnDSpells({
 
   function speichernRes() {
     if (!resDaten.name.trim() || resDaten.max < 1) return;
-    addResource({ ...resDaten, aktuell: resDaten.max });
+    addResource({ ...resDaten, current: resDaten.max });
     setResForm(false); setResDaten(LEER_RESSOURCE);
   }
 
@@ -146,9 +146,9 @@ export function DnDSpells({
   function importiereAusDB(z: SpellDBEintrag) {
     setFormDaten({
       name: zeigeDe ? z.nameDe : z.name,
-      nameEn: z.name, stufe: z.stufe, schule: z.schule, herkunft: 'CLASS',
-      aktion: z.aktion as ActionType, konzentration: z.konzentration,
-      description: z.beschreibung, komponenten: z.komponenten, reichweite: z.reichweite,
+      nameEn: z.name, level: z.stufe, school: z.schule, origin: 'CLASS',
+      action: z.aktion as ActionType, concentration: z.konzentration,
+      description: z.beschreibung, components: z.komponenten, range: z.reichweite,
       isHomebrew: z.isHomebrew, slug: z.slug,
     });
     setBearbeitenId(null); setZauberForm(true); setDbSuche(''); setDbErgebnisse([]);
@@ -182,7 +182,7 @@ export function DnDSpells({
             <label key={s} className="dnd-slot-konfig-zeile">
               <span>{t.spell_slots_rank} {s}</span>
               <input type="number" min={0} max={9} className="dnd-slot-max-input"
-                value={char.zauberschlitze[s]?.max ?? 0}
+                value={char.spellSlots[s]?.max ?? 0}
                 onChange={e => setSlotMax(s, parseInt(e.target.value) || 0)} />
             </label>
           ))}
@@ -194,13 +194,13 @@ export function DnDSpells({
       ) : (
         <div className="dnd-slot-bereich">
           {aktiveSlots.map(s => {
-            const slot = char.zauberschlitze[s];
+            const slot = char.spellSlots[s];
             return (
               <div key={s} className="dnd-slot-reihe">
                 <span className="dnd-slot-label">{t.spell_slots_rank} {s}</span>
                 <div className="dnd-slot-pips">
                   {Array.from({ length: slot.max }).map((_, i) => {
-                    const voll = i < slot.aktuell;
+                    const voll = i < slot.current;
                     return (
                       <button key={i}
                         className={`dnd-slot-pip ${voll ? 'voll' : 'leer'}`}
@@ -209,7 +209,7 @@ export function DnDSpells({
                     );
                   })}
                 </div>
-                <span className="dnd-slot-count">{slot.aktuell}/{slot.max}</span>
+                <span className="dnd-slot-count">{slot.current}/{slot.max}</span>
               </div>
             );
           })}
@@ -240,8 +240,8 @@ export function DnDSpells({
             </div>
             <div>
               <div className="field-label">{t.resources_recharge}</div>
-              <select className="gla-input" value={resDaten.aufladung}
-                onChange={e => setResDaten(r => ({ ...r, aufladung: e.target.value as DnDResource['aufladung'] }))}>
+              <select className="gla-input" value={resDaten.recharge}
+                onChange={e => setResDaten(r => ({ ...r, recharge: e.target.value as DnDResource['recharge'] }))}>
                 <option value="LONG_REST">{t.resources_long_rest}</option>
                 <option value="SHORT_REST">{t.resources_short_rest}</option>
                 <option value="AT_WILL">{t.resources_at_will}</option>
@@ -255,19 +255,19 @@ export function DnDSpells({
         </div>
       )}
 
-      {char.ressourcen.length === 0 && !resForm && (
+      {char.resources.length === 0 && !resForm && (
         <p className="dnd-leer-hinweis">{t.resources_none}</p>
       )}
 
       <div className="dnd-ressourcen-liste">
-        {char.ressourcen.map(r => {
-          const aufladungLabel = r.aufladung === 'LONG_REST' ? 'L' : r.aufladung === 'SHORT_REST' ? 'K' : '∞';
+        {char.resources.map(r => {
+          const aufladungLabel = r.recharge === 'LONG_REST' ? 'L' : r.recharge === 'SHORT_REST' ? 'K' : '∞';
           return (
             <div key={r.id} className="dnd-ressource-row">
               <span className="dnd-ressource-name">{r.name}</span>
               <div className="dnd-slot-pips">
                 {Array.from({ length: r.max }).map((_, i) => {
-                  const voll = i < r.aktuell;
+                  const voll = i < r.current;
                   return (
                     <button key={i}
                       className={`dnd-slot-pip ${voll ? 'voll ressource' : 'leer'}`}
@@ -276,10 +276,10 @@ export function DnDSpells({
                   );
                 })}
               </div>
-              <span className="dnd-slot-count">{r.aktuell}/{r.max}</span>
+              <span className="dnd-slot-count">{r.current}/{r.max}</span>
               <span className="dnd-res-aufladung" title={
-                r.aufladung === 'LONG_REST' ? t.resources_long_rest
-                : r.aufladung === 'SHORT_REST' ? t.resources_short_rest : t.resources_at_will
+                r.recharge === 'LONG_REST' ? t.resources_long_rest
+                : r.recharge === 'SHORT_REST' ? t.resources_short_rest : t.resources_at_will
               }>{aufladungLabel}</span>
               <button className="dnd-icon-btn danger" onClick={() => removeResource(r.id)}>✕</button>
             </div>
@@ -365,19 +365,19 @@ export function DnDSpells({
             <div>
               <div className="field-label">{t.spells_rank_label}</div>
               <input className="gla-input" type="number" min={0} max={9}
-                value={formDaten.stufe}
-                onChange={e => setFormDaten(f => ({ ...f, stufe: parseInt(e.target.value) || 0 }))} />
+                value={formDaten.level}
+                onChange={e => setFormDaten(f => ({ ...f, level: parseInt(e.target.value) || 0 }))} />
             </div>
             <div>
               <div className="field-label">{t.spells_school}</div>
-              <input className="gla-input" value={formDaten.schule}
-                onChange={e => setFormDaten(f => ({ ...f, schule: e.target.value }))} />
+              <input className="gla-input" value={formDaten.school}
+                onChange={e => setFormDaten(f => ({ ...f, school: e.target.value }))} />
             </div>
             <div>
               <div className="field-label">{t.origin}</div>
-              <select className="gla-input" value={formDaten.herkunft}
-                disabled={bearbeitenId ? isLockedOrigin(char.zauber.find(z => z.id === bearbeitenId)?.herkunft ?? 'FEAT') : false}
-                onChange={e => setFormDaten(f => ({ ...f, herkunft: e.target.value as OriginType }))}>
+              <select className="gla-input" value={formDaten.origin}
+                disabled={bearbeitenId ? isLockedOrigin(char.spells.find(z => z.id === bearbeitenId)?.origin ?? 'FEAT') : false}
+                onChange={e => setFormDaten(f => ({ ...f, origin: e.target.value as OriginType }))}>
                 {ALLE_HERKUENFTE.map(h => (
                   <option key={h} value={h}>{SOURCE_LABEL[h]}</option>
                 ))}
@@ -385,8 +385,8 @@ export function DnDSpells({
             </div>
             <div>
               <div className="field-label">{t.action_action}</div>
-              <select className="gla-input" value={formDaten.aktion}
-                onChange={e => setFormDaten(f => ({ ...f, aktion: e.target.value as ActionType }))}>
+              <select className="gla-input" value={formDaten.action}
+                onChange={e => setFormDaten(f => ({ ...f, action: e.target.value as ActionType }))}>
                 {ALLE_AKTIONEN.map(a => (
                   <option key={a} value={a}>{ACTION_LABEL[a]}</option>
                 ))}
@@ -394,18 +394,18 @@ export function DnDSpells({
             </div>
             <div>
               <div className="field-label">{t.spells_components}</div>
-              <input className="gla-input" value={formDaten.komponenten}
-                onChange={e => setFormDaten(f => ({ ...f, komponenten: e.target.value }))} />
+              <input className="gla-input" value={formDaten.components}
+                onChange={e => setFormDaten(f => ({ ...f, components: e.target.value }))} />
             </div>
             <div>
               <div className="field-label">{t.spells_range}</div>
-              <input className="gla-input" value={formDaten.reichweite}
-                onChange={e => setFormDaten(f => ({ ...f, reichweite: e.target.value }))} />
+              <input className="gla-input" value={formDaten.range}
+                onChange={e => setFormDaten(f => ({ ...f, range: e.target.value }))} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 }}>
               <label className="dnd-checkbox-label">
-                <input type="checkbox" checked={formDaten.konzentration}
-                  onChange={e => setFormDaten(f => ({ ...f, konzentration: e.target.checked }))} />
+                <input type="checkbox" checked={formDaten.concentration}
+                  onChange={e => setFormDaten(f => ({ ...f, concentration: e.target.checked }))} />
                 {t.spells_concentration}
               </label>
             </div>
@@ -430,7 +430,7 @@ export function DnDSpells({
 
       <div className="dnd-zauber-liste">
         {sichtbareZauber.map(z => {
-          const istKonz = char.konzentration === z.id;
+          const istKonz = char.concentration === z.id;
           const offen = aufgeklappt.has(z.id);
           const nameEn = z.nameEn ?? z.slug ?? null;
           const srdLink = (!z.isHomebrew && nameEn) ? srdUrl(nameEn) : null;
@@ -438,11 +438,11 @@ export function DnDSpells({
             <div key={z.id} className={`dnd-zauber-item ${istKonz ? 'konzentriert' : ''}`}>
               <div className="dnd-zauber-header">
                 <div className="dnd-zauber-info">
-                  <span className="dnd-herkunft-badge" style={{ background: SOURCE_COLOR[z.herkunft] }}>
-                    {SOURCE_LABEL[z.herkunft]}
+                  <span className="dnd-herkunft-badge" style={{ background: SOURCE_COLOR[z.origin] }}>
+                    {SOURCE_LABEL[z.origin]}
                   </span>
                   {z.isHomebrew && <span className="dnd-homebrew-badge">HB</span>}
-                  {z.konzentration && (
+                  {z.concentration && (
                     <button
                       className={`dnd-konz-tag ${istKonz ? 'aktiv' : ''}`}
                       onClick={() => setConcentration(istKonz ? null : z.id)}
@@ -456,11 +456,11 @@ export function DnDSpells({
                       <span className="dnd-db-treffer-en"> ({z.nameEn})</span>
                     )}
                     <span className="dnd-zauber-meta-inline">
-                      {z.stufe === 0 ? t.spells_cantrip : `${t.spells_rank} ${z.stufe}`}
-                      {z.schule && ` · ${z.schule}`}
-                      {` · ${ACTION_LABEL[z.aktion]}`}
+                      {z.level === 0 ? t.spells_cantrip : `${t.spells_rank} ${z.level}`}
+                      {z.school && ` · ${z.school}`}
+                      {` · ${ACTION_LABEL[z.action]}`}
                     </span>
-                    {(z.description || z.komponenten || z.reichweite) &&
+                    {(z.description || z.components || z.range) &&
                       <span className="dnd-merkmal-pfeil">{offen ? '▲' : '▼'}</span>}
                   </button>
                 </div>
@@ -470,18 +470,18 @@ export function DnDSpells({
                       title={t.spells_srd_title} onClick={e => e.stopPropagation()}>SRD</a>
                   )}
                   <button className="dnd-icon-btn" onClick={() => oeffneBearbeiten(z)}>✎</button>
-                  {!isLockedOrigin(z.herkunft) && (
+                  {!isLockedOrigin(z.origin) && (
                     <button className="dnd-icon-btn danger" onClick={() => removeSpell(z.id)}>✕</button>
                   )}
                 </div>
               </div>
               {offen && (
                 <div className="dnd-merkmal-text">
-                  {(z.komponenten || z.reichweite) && (
+                  {(z.components || z.range) && (
                     <div style={{ opacity: 0.7, fontSize: 13, marginBottom: 4 }}>
-                      {z.komponenten && <span>{t.spells_components_label} {z.komponenten}</span>}
-                      {z.komponenten && z.reichweite && ' · '}
-                      {z.reichweite && <span>{t.spells_range_label} {z.reichweite}</span>}
+                      {z.components && <span>{t.spells_components_label} {z.components}</span>}
+                      {z.components && z.range && ' · '}
+                      {z.range && <span>{t.spells_range_label} {z.range}</span>}
                     </div>
                   )}
                   {z.description && <div>{z.description}</div>}

@@ -45,24 +45,24 @@ export const DND_SKILLS: DnDSkillDef[] = [
 
 export function skillMod(
   fId: string,
-  char: Pick<DnDCharacter, 'attribute' | 'stufe' | 'skill_profis' | 'skill_expertise'>,
+  char: Pick<DnDCharacter, 'attrs' | 'level' | 'skillProficiencies' | 'skillExpertise'>,
 ): number {
   const f = DND_SKILLS.find(x => x.id === fId);
   if (!f) return 0;
-  const base = abilityMod(char.attribute[f.ability]);
-  const pb = proficiencyBonus(char.stufe);
-  if (char.skill_expertise.includes(fId)) return base + pb * 2;
-  if (char.skill_profis.includes(fId)) return base + pb;
+  const base = abilityMod(char.attrs[f.ability]);
+  const pb = proficiencyBonus(char.level);
+  if (char.skillExpertise.includes(fId)) return base + pb * 2;
+  if (char.skillProficiencies.includes(fId)) return base + pb;
   return base;
 }
 
 export function savingThrowMod(
   ability: AbilityKey,
-  char: Pick<DnDCharacter, 'attribute' | 'stufe' | 'rettungswurf_profis'>,
+  char: Pick<DnDCharacter, 'attrs' | 'level' | 'saveProficiencies'>,
 ): number {
-  const base = abilityMod(char.attribute[ability]);
-  const pb = proficiencyBonus(char.stufe);
-  return char.rettungswurf_profis.includes(ability) ? base + pb : base;
+  const base = abilityMod(char.attrs[ability]);
+  const pb = proficiencyBonus(char.level);
+  return char.saveProficiencies.includes(ability) ? base + pb : base;
 }
 
 export const SOURCE_LABEL: Record<OriginType, string> = {
@@ -103,24 +103,24 @@ export function emptyCharacter(): DnDCharacter {
   return {
     id: newId(),
     name: '',
-    rasse: '',
-    klasse: '',
-    unterklasse: '',
-    hintergrund: '',
-    stufe: 1,
-    ruestungsklasse: 10,
-    geschwindigkeit: 30,
-    lebenspunkte: 8,
-    maxLebenspunkte: 8,
-    attribute: { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 },
-    rettungswurf_profis: [],
-    skill_profis: [],
-    skill_expertise: [],
-    merkmale: [],
-    zauber: [],
-    zauberschlitze: {},
-    konzentration: null,
-    ressourcen: [],
+    species: '',
+    charClass: '',
+    subclass: '',
+    background: '',
+    level: 1,
+    armorClass: 10,
+    speed: 30,
+    hp: 8,
+    maxHp: 8,
+    attrs: { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 },
+    saveProficiencies: [],
+    skillProficiencies: [],
+    skillExpertise: [],
+    features: [],
+    spells: [],
+    spellSlots: {},
+    concentration: null,
+    resources: [],
     metamagic: [],
   };
 }

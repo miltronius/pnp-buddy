@@ -26,7 +26,9 @@
       "Bash(pnpm exec *)",
       "Bash(git rm *)",
       "Bash(git -C .claude/worktrees/agent-a3e3bfcc612b12a08 status)",
-      "Bash(git -C .claude/worktrees/agent-a3e3bfcc612b12a08 log --oneline -3)"
+      "Bash(git -C .claude/worktrees/agent-a3e3bfcc612b12a08 log --oneline -3)",
+      "Bash(pnpm install *)",
+      "Bash(git add *)"
     ]
   }
 }

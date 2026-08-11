@@ -1,15 +1,15 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import type { BodenArt, DetailObjekt } from "../types";
+import type { FloorType, DetailObject } from "../types";
 import { newId } from "../lib/game";
 import { useCampaign } from "../state/CampaignContext";
 import { useSession } from "../state/SessionContext";
 import { useT } from "../i18n";
 
-const DET_FLOORS: Record<BodenArt, string> = {
-  stein: "#8a857c", holz: "#a9793f", gras: "#5a9e52", wasser: "#2b6d8f", sand: "#e3d29a",
+const DET_FLOORS: Record<FloorType, string> = {
+  stone: "#8a857c", wood: "#a9793f", grass: "#5a9e52", water: "#2b6d8f", sand: "#e3d29a",
 };
 const DET_GRID = 32;
-const BOEDEN = Object.keys(DET_FLOORS) as BodenArt[];
+const BOEDEN = Object.keys(DET_FLOORS) as FloorType[];
 
 type Werkzeug = "rect" | "circle" | "wall" | "door" | "label" | "select";
 interface Entwurf { tool: Werkzeug; x1: number; y1: number; x2: number; y2: number }
@@ -19,13 +19,13 @@ export function Scene() {
   const { setTab } = useSession();
   const t = useT();
 
-  const floorLabels: Record<BodenArt, string> = {
-    stein: t.scene_floor_stone, holz: t.scene_floor_wood,
-    gras: t.scene_floor_grass, wasser: t.scene_floor_water, sand: t.scene_floor_sand,
+  const floorLabels: Record<FloorType, string> = {
+    stone: t.scene_floor_stone, wood: t.scene_floor_wood,
+    grass: t.scene_floor_grass, water: t.scene_floor_water, sand: t.scene_floor_sand,
   };
 
   const [tool, setTool] = useState<Werkzeug>("rect");
-  const [floor, setFloor] = useState<BodenArt>("stein");
+  const [floor, setFloor] = useState<FloorType>("stone");
   const [snap, setSnap] = useState(true);
   const [draft, setDraft] = useState<Entwurf | null>(null);
 
@@ -34,7 +34,7 @@ export function Scene() {
   const dragRef = useRef<{ id: string; pointerId: number; offX: number; offY: number } | null>(null);
 
   const objects = scene.objects;
-  const setObjects = (f: (os: DetailObjekt[]) => DetailObjekt[]) =>
+  const setObjects = (f: (os: DetailObject[]) => DetailObject[]) =>
     setScene(s => ({ ...s, objects: f(s.objects) }));
 
   function punkt(e: ReactPointerEvent<SVGSVGElement>, rastern: boolean) {
@@ -53,7 +53,7 @@ export function Scene() {
     return { x, y };
   }
 
-  function objektBei(px: number, py: number): DetailObjekt | null {
+  function objektBei(px: number, py: number): DetailObject | null {
     for (let i = objects.length - 1; i >= 0; i--) {
       const o = objects[i];
       if (o.type === "rect" && px >= o.x && px <= o.x + o.w && py >= o.y && py <= o.y + o.h) return o;
@@ -144,7 +144,7 @@ export function Scene() {
 
   const loeschen = (id: string) => setObjects(os => os.filter(o => o.id !== id));
 
-  function labelBearbeiten(o: Extract<DetailObjekt, { type: "label" }>) {
+  function labelBearbeiten(o: Extract<DetailObject, { type: "label" }>) {
     const text = window.prompt("Beschriftung:", o.text);
     if (text != null) {
       setObjects(os => os.map(x => (x.id === o.id && x.type === "label" ? { ...x, text: text.trim().slice(0, 40) } : x)));
@@ -174,9 +174,9 @@ export function Scene() {
       if (!ctx) return;
       ctx.drawImage(img, 0, 0, cv.width, cv.height);
       try {
-        const wert = await storage.bildSpeichern(cv.toDataURL("image/jpeg", 0.88));
+        const wert = await storage.saveImage(cv.toDataURL("image/jpeg", 0.88));
         setMap(k => ({ ...k, bg: wert }));
-        setTab("karte");
+        setTab("map");
         showToast(t.scene_taken);
       } catch (err) {
         showToast(err instanceof Error ? err.message : t.scene_failed);
@@ -220,7 +220,7 @@ export function Scene() {
             <span className="map-sep" />
             <span className="tool-label" style={{ minWidth: "auto" }}>{t.scene_bg}</span>
             <select className="det-bg-sel" value={scene.bg} aria-label={t.scene_bg}
-              onChange={e => setScene(s => ({ ...s, bg: e.target.value as BodenArt }))}>
+              onChange={e => setScene(s => ({ ...s, bg: e.target.value as FloorType }))}>
               {BOEDEN.map(f => <option key={f} value={f}>{floorLabels[f]}</option>)}
             </select>
             <button className={`det-tbtn ${snap ? "on" : ""}`} onClick={() => setSnap(v => !v)} title={t.scene_grid_snap}>{t.scene_grid_snap}</button>

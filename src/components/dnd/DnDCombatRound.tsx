@@ -87,7 +87,7 @@ export function DnDCombatRound({ char }: Props) {
   const [turn, setTurn] = useState<TurnState>(EMPTY_TURN);
   const [openRef, setOpenRef] = useState<number | null>(null);
 
-  const speed = char.geschwindigkeit || 30;
+  const speed = char.speed || 30;
 
   function naechsteRunde() {
     setTurn(EMPTY_TURN);
@@ -108,7 +108,7 @@ export function DnDCombatRound({ char }: Props) {
 
   const spellsByAction = (['ACTION', 'BONUS', 'REACTION'] as ActionType[]).map(type => ({
     type,
-    spells: char.zauber.filter(z => z.aktion === type),
+    spells: char.spells.filter(z => z.action === type),
   })).filter(g => g.spells.length > 0);
 
   const bewegungPct = speed > 0 ? (turn.bewegungGenutzt / speed) * 100 : 0;
@@ -228,7 +228,7 @@ export function DnDCombatRound({ char }: Props) {
                     {spells.map(z => (
                       <span key={z.id} className="dnd-runde-zauber-chip">
                         {isDe ? z.name : (z.nameEn ?? z.name)}
-                        {z.konzentration && <span className="dnd-runde-konz" title={isDe ? 'Konzentration' : 'Concentration'}>🧿</span>}
+                        {z.concentration && <span className="dnd-runde-konz" title={isDe ? 'Konzentration' : 'Concentration'}>🧿</span>}
                       </span>
                     ))}
                   </div>

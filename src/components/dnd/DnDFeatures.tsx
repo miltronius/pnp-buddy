@@ -4,7 +4,7 @@ import { SOURCE_COLOR } from "../../lib/dndGame";
 import { useT, useGameLabels } from "../../i18n";
 
 const ALL_SOURCES: OriginType[] = ['SPECIES', 'CLASS', 'SUBCLASS', 'FEAT', 'BACKGROUND', 'UNIVERSAL'];
-const EMPTY: Omit<DnDFeature, 'id'> = { name: '', description: '', herkunft: 'CLASS' };
+const EMPTY: Omit<DnDFeature, 'id'> = { name: '', description: '', origin: 'CLASS' };
 
 interface Props {
   char: DnDCharacter;
@@ -20,21 +20,21 @@ export function DnDFeatures({ char, addFeature, updateFeature, removeFeature }: 
   const [formData, setFormData] = useState<Omit<DnDFeature, 'id'>>(EMPTY);
   const [editId, setEditId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(char.merkmale.map(m => m.id)));
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(char.features.map(m => m.id)));
 
   useEffect(() => {
     setExpanded(prev => {
-      const newIds = char.merkmale.map(m => m.id).filter(id => !prev.has(id));
+      const newIds = char.features.map(m => m.id).filter(id => !prev.has(id));
       if (newIds.length === 0) return prev;
       return new Set([...prev, ...newIds]);
     });
-  }, [char.merkmale]);
+  }, [char.features]);
 
   function openNew() { setEditId(null); setFormData(EMPTY); setFormOpen(true); }
 
   function openEdit(m: DnDFeature) {
     setEditId(m.id);
-    setFormData({ name: m.name, description: m.description, herkunft: m.herkunft });
+    setFormData({ name: m.name, description: m.description, origin: m.origin });
     setFormOpen(true);
   }
 
@@ -55,7 +55,7 @@ export function DnDFeatures({ char, addFeature, updateFeature, removeFeature }: 
     });
   }
 
-  const visible = char.merkmale.filter(m => filter === 'ALL' || m.herkunft === filter);
+  const visible = char.features.filter(m => filter === 'ALL' || m.origin === filter);
 
   return (
     <div className="sheet" style={{ maxWidth: 720, margin: '0 auto' }}>
@@ -90,8 +90,8 @@ export function DnDFeatures({ char, addFeature, updateFeature, removeFeature }: 
             </div>
             <div>
               <div className="field-label">{t.origin}</div>
-              <select className="gla-input" value={formData.herkunft}
-                onChange={e => setFormData(f => ({ ...f, herkunft: e.target.value as OriginType }))}>
+              <select className="gla-input" value={formData.origin}
+                onChange={e => setFormData(f => ({ ...f, origin: e.target.value as OriginType }))}>
                 {ALL_SOURCES.map(h => (
                   <option key={h} value={h}>{SOURCE_LABEL[h]}</option>
                 ))}
@@ -119,8 +119,8 @@ export function DnDFeatures({ char, addFeature, updateFeature, removeFeature }: 
           return (
             <div key={m.id} className="dnd-merkmal-item">
               <div className="dnd-merkmal-header">
-                <span className="dnd-herkunft-badge" style={{ background: SOURCE_COLOR[m.herkunft] }}>
-                  {SOURCE_LABEL[m.herkunft]}
+                <span className="dnd-herkunft-badge" style={{ background: SOURCE_COLOR[m.origin] }}>
+                  {SOURCE_LABEL[m.origin]}
                 </span>
                 <button className="dnd-merkmal-name-btn" onClick={() => toggleExpanded(m.id)}>
                   <strong>{m.name}</strong>

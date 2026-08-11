@@ -9,7 +9,7 @@ export function WantedPosters() {
   const { chars, setChars, crew, setCrew, storage, saveNow, showToast } = useCampaign();
   const t = useT();
 
-  const jollyUrl = storage.bildUrl(crew.jollyRoger);
+  const jollyUrl = storage.imageUrl(crew.jollyRoger);
 
   async function onJollyUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -17,7 +17,7 @@ export function WantedPosters() {
     if (!file) return;
     try {
       const datenUrl = await loadImageScaled(file, 500, { square: true });
-      const wert = await storage.bildSpeichern(datenUrl);
+      const wert = await storage.saveImage(datenUrl);
       setCrew(c => ({ ...c, jollyRoger: wert }));
     } catch (err) {
       showToast(err instanceof Error ? err.message : t.map_load_error);
@@ -30,7 +30,7 @@ export function WantedPosters() {
     if (!file) return;
     try {
       const datenUrl = await loadImageScaled(file, 600, { square: true });
-      const wert = await storage.bildSpeichern(datenUrl);
+      const wert = await storage.saveImage(datenUrl);
       setChars(cs => cs.map(c => (c.id === charId ? { ...c, portrait: wert } : c)));
       showToast(t.poster_portrait_set);
     } catch (err) {
@@ -38,7 +38,7 @@ export function WantedPosters() {
     }
   }
 
-  const gesamtKopfgeld = chars.reduce((a, c) => a + (Number(c.kopfgeld) || 0), 0);
+  const totalBounty = chars.reduce((a, c) => a + (Number(c.bounty) || 0), 0);
 
   return (
     <div style={{ padding: "0 14px" }}>
@@ -66,18 +66,18 @@ export function WantedPosters() {
             </label>
             <label className="crew-field">
               <span className="field-label">{t.crew_ship}</span>
-              <input className="gla-input" value={crew.schiffName}
-                onChange={e => setCrew(c => ({ ...c, schiffName: e.target.value }))} />
+              <input className="gla-input" value={crew.shipName}
+                onChange={e => setCrew(c => ({ ...c, shipName: e.target.value }))} />
             </label>
             <label className="crew-field">
               <span className="field-label">{t.crew_ship_desc}</span>
-              <textarea className="gla-textarea" value={crew.schiffBeschreibung}
-                onChange={e => setCrew(c => ({ ...c, schiffBeschreibung: e.target.value }))} />
+              <textarea className="gla-textarea" value={crew.shipDescription}
+                onChange={e => setCrew(c => ({ ...c, shipDescription: e.target.value }))} />
             </label>
             <label className="crew-field">
               <span className="field-label">{t.crew_fleet}</span>
-              <input className="gla-input" value={crew.flotte}
-                onChange={e => setCrew(c => ({ ...c, flotte: e.target.value }))} />
+              <input className="gla-input" value={crew.fleet}
+                onChange={e => setCrew(c => ({ ...c, fleet: e.target.value }))} />
             </label>
           </div>
         </div>
@@ -85,13 +85,13 @@ export function WantedPosters() {
         <div className="bounty-total">
           {t.crew_bounty_total}
           <span className="bounty-sum">
-            <span className="berry-sym">฿</span>{formatBerry(gesamtKopfgeld)}
+            <span className="berry-sym">฿</span>{formatBerry(totalBounty)}
           </span>
         </div>
 
         <div className="wanted-grid">
           {chars.map(c => {
-            const portraitUrl = storage.bildUrl(c.portrait);
+            const portraitUrl = storage.imageUrl(c.portrait);
             return (
               <div className="wanted" key={c.id}>
                 <div className="wanted-head">{t.poster_wanted}</div>
@@ -110,14 +110,14 @@ export function WantedPosters() {
                 </div>
                 <input className="wanted-name" value={c.name} placeholder={t.name} aria-label={t.name}
                   onChange={e => setChars(cs => cs.map(x => (x.id === c.id ? { ...x, name: e.target.value } : x)))} />
-                <input className="wanted-epitheton" value={c.epitheton || ""} aria-label={t.name}
-                  onChange={e => setChars(cs => cs.map(x => (x.id === c.id ? { ...x, epitheton: e.target.value } : x)))} />
+                <input className="wanted-epitheton" value={c.epithet || ""} aria-label={t.name}
+                  onChange={e => setChars(cs => cs.map(x => (x.id === c.id ? { ...x, epithet: e.target.value } : x)))} />
                 <div className="wanted-bounty">
                   <span className="berry-sym">฿</span>
-                  <NumberInput className="wanted-bounty-input" min={0} value={c.kopfgeld || 0} ariaLabel={t.char_berries}
-                    onChange={v => setChars(cs => cs.map(x => (x.id === c.id ? { ...x, kopfgeld: v } : x)))} />
+                  <NumberInput className="wanted-bounty-input" min={0} value={c.bounty || 0} ariaLabel={t.char_berries}
+                    onChange={v => setChars(cs => cs.map(x => (x.id === c.id ? { ...x, bounty: v } : x)))} />
                 </div>
-                <div className="wanted-bounty-fmt">{formatBerry(c.kopfgeld)} Berry</div>
+                <div className="wanted-bounty-fmt">{formatBerry(c.bounty)} Berry</div>
                 <div className="wanted-marine">{t.poster_footer}</div>
               </div>
             );

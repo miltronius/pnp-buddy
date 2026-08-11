@@ -21,8 +21,8 @@ interface MergedLevelGroup {
 }
 
 function mergeProgression(char: DnDCharacter): MergedLevelGroup[] {
-  const classPlan = classLevelProgression(char.klasse, char.unterklasse);
-  const speciesPlan = speciesLevelProgression(char.rasse);
+  const classPlan = classLevelProgression(char.charClass, char.subclass);
+  const speciesPlan = speciesLevelProgression(char.species);
 
   const byLevel = new Map<number, MergedFeature[]>();
 
@@ -54,7 +54,7 @@ export function DnDClassRoadmap({ char, setMetamagic }: Props) {
 
   // Each "Metamagie*" feature unlocked adds to the allowed count; base level gives 2, each extra +1
   const unlockedMetamagicCount = plan
-    .filter(g => g.level <= char.stufe)
+    .filter(g => g.level <= char.level)
     .flatMap(g => g.features)
     .filter(f => f.name.startsWith('Metamagie')).length;
   const allowed = unlockedMetamagicCount === 0 ? 0 : unlockedMetamagicCount + 1;
@@ -80,7 +80,7 @@ export function DnDClassRoadmap({ char, setMetamagic }: Props) {
       {isOpen && (
         <div className="dnd-roadmap-body">
           {plan.map(group => {
-            const active = group.level <= char.stufe;
+            const active = group.level <= char.level;
             const isFirstMetamagicRow = group.level === firstMetamagicLevel;
 
             return (

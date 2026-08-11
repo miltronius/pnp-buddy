@@ -18,8 +18,8 @@ export function DnDResourceHUD({
 }: Props) {
   const t = useT();
 
-  const activeSlots = SLOT_LEVELS.filter(s => char.zauberschlitze[s]?.max > 0);
-  const hasContent = activeSlots.length > 0 || char.ressourcen.length > 0;
+  const activeSlots = SLOT_LEVELS.filter(s => char.spellSlots[s]?.max > 0);
+  const hasContent = activeSlots.length > 0 || char.resources.length > 0;
 
   if (!hasContent) return null;
 
@@ -28,13 +28,13 @@ export function DnDResourceHUD({
       <div className="dnd-hud-inner">
         <div className="dnd-hud-pools">
           {activeSlots.map(level => {
-            const slot = char.zauberschlitze[level];
+            const slot = char.spellSlots[level];
             return (
               <div key={level} className="dnd-hud-row">
                 <span className="dnd-hud-label">{t.spell_slots_rank} {level}</span>
                 <div className="dnd-hud-pips">
                   {Array.from({ length: slot.max }).map((_, i) => {
-                    const filled = i < slot.aktuell;
+                    const filled = i < slot.current;
                     return (
                       <button key={i}
                         className={`dnd-hud-pip ${filled ? 'filled' : 'empty'}`}
@@ -44,17 +44,17 @@ export function DnDResourceHUD({
                     );
                   })}
                 </div>
-                <span className="dnd-hud-count">{slot.aktuell}/{slot.max}</span>
+                <span className="dnd-hud-count">{slot.current}/{slot.max}</span>
               </div>
             );
           })}
 
-          {char.ressourcen.map(resource => (
+          {char.resources.map(resource => (
             <div key={resource.id} className="dnd-hud-row">
               <span className="dnd-hud-label">{resource.name}</span>
               <div className="dnd-hud-pips">
                 {Array.from({ length: resource.max }).map((_, i) => {
-                  const filled = i < resource.aktuell;
+                  const filled = i < resource.current;
                   return (
                     <button key={i}
                       className={`dnd-hud-pip resource ${filled ? 'filled' : 'empty'}`}
@@ -64,7 +64,7 @@ export function DnDResourceHUD({
                   );
                 })}
               </div>
-              <span className="dnd-hud-count">{resource.aktuell}/{resource.max}</span>
+              <span className="dnd-hud-count">{resource.current}/{resource.max}</span>
             </div>
           ))}
         </div>

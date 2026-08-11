@@ -12,21 +12,21 @@ export function DnDSkills({ char, setField }: Props) {
   const { ABILITY_SHORT, SKILL_NAMES } = useGameLabels();
 
   function toggleProfi(id: string) {
-    const hat = char.skill_profis.includes(id);
+    const hat = char.skillProficiencies.includes(id);
     if (hat) {
-      setField('skill_profis', char.skill_profis.filter(x => x !== id));
-      setField('skill_expertise', char.skill_expertise.filter(x => x !== id));
+      setField('skillProficiencies', char.skillProficiencies.filter(x => x !== id));
+      setField('skillExpertise', char.skillExpertise.filter(x => x !== id));
     } else {
-      setField('skill_profis', [...char.skill_profis, id]);
+      setField('skillProficiencies', [...char.skillProficiencies, id]);
     }
   }
 
   function toggleExpertise(id: string) {
-    if (!char.skill_profis.includes(id)) return;
-    const hat = char.skill_expertise.includes(id);
-    setField('skill_expertise', hat
-      ? char.skill_expertise.filter(x => x !== id)
-      : [...char.skill_expertise, id]);
+    if (!char.skillProficiencies.includes(id)) return;
+    const hat = char.skillExpertise.includes(id);
+    setField('skillExpertise', hat
+      ? char.skillExpertise.filter(x => x !== id)
+      : [...char.skillExpertise, id]);
   }
 
   return (
@@ -40,8 +40,8 @@ export function DnDSkills({ char, setField }: Props) {
       <div className="dnd-skill-list">
         {DND_SKILLS.map(f => {
           const mod = skillMod(f.id, char);
-          const profi = char.skill_profis.includes(f.id);
-          const exp = char.skill_expertise.includes(f.id);
+          const profi = char.skillProficiencies.includes(f.id);
+          const exp = char.skillExpertise.includes(f.id);
           return (
             <div key={f.id} className="dnd-skill-row">
               <button
