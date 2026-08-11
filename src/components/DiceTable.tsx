@@ -1,11 +1,11 @@
-import { ATTRIBUTE, type AttributName, type Wuerfelseiten } from "../types";
+import { ATTRIBUTE, type AttrName, type DieSides } from "../types";
 import { balanceValue, withSign } from "../lib/game";
 import { useCampaign } from "../state/CampaignContext";
 import { useSession } from "../state/SessionContext";
 import { useT } from "../i18n";
 import { NumberInput } from "./NumberInput";
 
-const SEITEN: Wuerfelseiten[] = [4, 6, 8, 10, 12, 20, 100];
+const SEITEN: DieSides[] = [4, 6, 8, 10, 12, 20, 100];
 
 export function DiceTable() {
   const { active } = useCampaign();
@@ -25,17 +25,17 @@ export function DiceTable() {
           </div>
           <div className="dc-group">
             <label htmlFor="dsides">{t.dice_sides}</label>
-            <select id="dsides" value={sides} onChange={e => setSides(Number(e.target.value) as Wuerfelseiten)}>
+            <select id="dsides" value={sides} onChange={e => setSides(Number(e.target.value) as DieSides)}>
               {SEITEN.map(s => <option key={s} value={s}>W{s}</option>)}
             </select>
           </div>
           <div className="dc-group">
             <label htmlFor="dprobe">{t.dice_probe_on}</label>
-            <select id="dprobe" value={probeAtt} onChange={e => setProbeAtt(e.target.value as AttributName | "")}>
+            <select id="dprobe" value={probeAtt} onChange={e => setProbeAtt(e.target.value as AttrName | "")}>
               <option value="">{t.dice_none}</option>
               {ATTRIBUTE.map(a => (
                 <option key={a} value={a}>
-                  {a} ({withSign(balanceValue(active.attribute[a]))})
+                  {a} ({withSign(balanceValue(active.attrs[a]))})
                 </option>
               ))}
             </select>

@@ -1,56 +1,56 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import type { BauwerkArt, TerrainArt, Zeichenraster } from "../types";
+import type { BuildingType, TerrainType, DrawingGrid } from "../types";
 import { newId } from "../lib/game";
 import { useCampaign } from "../state/CampaignContext";
 import { useSession } from "../state/SessionContext";
 import { useT } from "../i18n";
 
-export const TERRAIN_COLORS: Record<TerrainArt, string> = {
-  wasser: "#2b6d8f", strand: "#e3d29a", gruen: "#5a9e52",
-  wald: "#2f6d3a", fels: "#7d766b", weg: "#c2ac7a",
+export const TERRAIN_COLORS: Record<TerrainType, string> = {
+  water: "#2b6d8f", beach: "#e3d29a", grass: "#5a9e52",
+  forest: "#2f6d3a", rock: "#7d766b", path: "#c2ac7a",
 };
 
-const BUILDING_ICONS: Record<BauwerkArt, string> = {
-  haus: "🏠", turm: "🗼", taverne: "🍺", hafen: "⚓",
-  schatz: "💰", kreuz: "❌", baum: "🌴", berg: "⛰",
+const BUILDING_ICONS: Record<BuildingType, string> = {
+  house: "🏠", tower: "🗼", tavern: "🍺", harbor: "⚓",
+  treasure: "💰", cross: "❌", tree: "🌴", mountain: "⛰",
 };
 
 const GRID_COLS = 60, GRID_ROWS = 40;
-const MALBAR: TerrainArt[] = ["gruen", "wald", "strand", "wasser", "fels", "weg"];
-const ALL_BUILDINGS = Object.keys(BUILDING_ICONS) as BauwerkArt[];
+const PAINTABLE: TerrainType[] = ["grass", "forest", "beach", "water", "rock", "path"];
+const ALL_BUILDINGS = Object.keys(BUILDING_ICONS) as BuildingType[];
 
-const leeresRaster = (): Zeichenraster => ({
+const emptyGrid = (): DrawingGrid => ({
   cols: GRID_COLS, rows: GRID_ROWS,
-  cells: new Array<TerrainArt>(GRID_COLS * GRID_ROWS).fill("wasser"),
+  cells: new Array<TerrainType>(GRID_COLS * GRID_ROWS).fill("water"),
 });
 
-type Malmodus = "terrain" | "gebaeude" | "radierer";
+type PaintMode = "terrain" | "building" | "eraser";
 
 export function Cartography() {
   const { drawing, setDrawing, setMap, storage, saveNow, showToast } = useCampaign();
   const { setTab } = useSession();
   const t = useT();
 
-  const terrainLabels: Record<TerrainArt, string> = {
-    wasser: t.carto_terrain_water, strand: t.carto_terrain_beach, gruen: t.carto_terrain_meadow,
-    wald: t.carto_terrain_forest, fels: t.carto_terrain_rock, weg: t.carto_terrain_path,
+  const terrainLabels: Record<TerrainType, string> = {
+    water: t.carto_terrain_water, beach: t.carto_terrain_beach, grass: t.carto_terrain_meadow,
+    forest: t.carto_terrain_forest, rock: t.carto_terrain_rock, path: t.carto_terrain_path,
   };
-  const buildingLabels: Record<BauwerkArt, string> = {
-    haus: t.carto_building_house, turm: t.carto_building_tower, taverne: t.carto_building_tavern,
-    hafen: t.carto_building_harbor, schatz: t.carto_building_treasure, kreuz: t.carto_building_x,
-    baum: t.carto_building_palm, berg: t.carto_building_mountain,
+  const buildingLabels: Record<BuildingType, string> = {
+    house: t.carto_building_house, tower: t.carto_building_tower, tavern: t.carto_building_tavern,
+    harbor: t.carto_building_harbor, treasure: t.carto_building_treasure, cross: t.carto_building_x,
+    tree: t.carto_building_palm, mountain: t.carto_building_mountain,
   };
 
-  const [terrain, setTerrain] = useState<TerrainArt>("gruen");
-  const [bauwerk, setBauwerk] = useState<BauwerkArt>("haus");
+  const [terrain, setTerrain] = useState<TerrainType>("grass");
+  const [building, setBuilding] = useState<BuildingType>("house");
   const [brush, setBrush] = useState(1);
-  const [modus, setModus] = useState<Malmodus>("terrain");
+  const [mode, setMode] = useState<PaintMode>("terrain");
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const gridRef = useRef<Zeichenraster>(drawing.grid ?? leeresRaster());
-  const malend = useRef(false);
+  const gridRef = useRef<DrawingGrid>(drawing.grid ?? emptyGrid());
+  const painting = useRef(false);
 
-  function render(g: Zeichenraster) {
+  function render(g: DrawingGrid) {
     const cv = canvasRef.current;
     if (!cv) return;
     if (cv.width !== 900) { cv.width = 900; cv.height = 600; }
@@ -84,7 +84,7 @@ export function Cartography() {
     const cx = Math.max(0, Math.min(g.cols - 1, Math.floor(((clientX - rect.left) / rect.width) * g.cols)));
     const cy = Math.max(0, Math.min(g.rows - 1, Math.floor(((clientY - rect.top) / rect.height) * g.rows)));
     const r = brush - 1;
-    const terr: TerrainArt = modus === "radierer" ? "wasser" : terrain;
+    const terr: TerrainType = mode === "eraser" ? "water" : terrain;
     const ctx = cv.getContext("2d");
     if (!ctx) return;
     const cellW = cv.width / g.cols, cellH = cv.height / g.rows;
@@ -100,40 +100,40 @@ export function Cartography() {
   }
 
   function onPointerDown(e: ReactPointerEvent<HTMLCanvasElement>) {
-    if (modus === "gebaeude") {
+    if (mode === "building") {
       const cv = canvasRef.current;
       if (!cv) return;
       const rect = cv.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 100;
       const y = ((e.clientY - rect.top) / rect.height) * 100;
-      setDrawing(z => ({ ...z, buildings: [...z.buildings, { id: newId("b"), kind: bauwerk, x, y }] }));
+      setDrawing(z => ({ ...z, buildings: [...z.buildings, { id: newId("b"), kind: building, x, y }] }));
       return;
     }
     e.preventDefault();
-    malend.current = true;
+    painting.current = true;
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* egal */ }
     paintAt(e.clientX, e.clientY);
   }
 
   function onPointerMove(e: ReactPointerEvent<HTMLCanvasElement>) {
-    if (!malend.current) return;
+    if (!painting.current) return;
     paintAt(e.clientX, e.clientY);
   }
 
   function onPointerUp() {
-    if (!malend.current) return;
-    malend.current = false;
+    if (!painting.current) return;
+    painting.current = false;
     commit();
   }
 
-  function leeren() {
-    const g = leeresRaster();
+  function clearGrid() {
+    const g = emptyGrid();
     gridRef.current = g;
     render(g);
     setDrawing({ grid: { ...g, cells: [...g.cells] }, buildings: [] });
   }
 
-  async function alsKarteUebernehmen() {
+  async function takeAsMap() {
     const cv = canvasRef.current;
     if (!cv || !drawing.grid) { showToast(t.carto_draw_first); return; }
     const out = document.createElement("canvas");
@@ -145,22 +145,22 @@ export function Cartography() {
     ctx.textBaseline = "middle";
     ctx.font = `${Math.round(out.width / 28)}px serif`;
     for (const b of drawing.buildings) {
-      const icon = BUILDING_ICONS[b.kind] ?? BUILDING_ICONS.haus;
+      const icon = BUILDING_ICONS[b.kind] ?? BUILDING_ICONS.house;
       ctx.fillText(icon, (b.x / 100) * out.width, (b.y / 100) * out.height);
     }
     try {
-      const wert = await storage.bildSpeichern(out.toDataURL("image/jpeg", 0.85));
-      setMap(k => ({ ...k, bg: wert }));
-      setTab("karte");
+      const value = await storage.saveImage(out.toDataURL("image/jpeg", 0.85));
+      setMap(k => ({ ...k, bg: value }));
+      setTab("map");
       showToast(t.carto_taken);
     } catch (err) {
       showToast(err instanceof Error ? err.message : t.carto_failed);
     }
   }
 
-  const modeHint = modus === "gebaeude"
-    ? t.carto_hint_place.replace('[0]', buildingLabels[bauwerk])
-    : modus === "radierer"
+  const modeHint = mode === "building"
+    ? t.carto_hint_place.replace('[0]', buildingLabels[building])
+    : mode === "eraser"
       ? t.carto_hint_erase
       : t.carto_hint_paint.replace('[0]', terrainLabels[terrain]);
 
@@ -170,16 +170,16 @@ export function Cartography() {
         <div className="draw-tools">
           <div className="tool-group">
             <span className="tool-label">{t.carto_paint}</span>
-            {MALBAR.map(tr => (
+            {PAINTABLE.map(tr => (
               <button key={tr}
-                className={`terr-btn ${modus === "terrain" && terrain === tr ? "on" : ""}`}
+                className={`terr-btn ${mode === "terrain" && terrain === tr ? "on" : ""}`}
                 style={{ "--terr": TERRAIN_COLORS[tr] } as CSSProperties}
-                onClick={() => { setModus("terrain"); setTerrain(tr); }}>
+                onClick={() => { setMode("terrain"); setTerrain(tr); }}>
                 <span className="terr-swatch" />{terrainLabels[tr]}
               </button>
             ))}
-            <button className={`terr-btn eraser ${modus === "radierer" ? "on" : ""}`}
-              onClick={() => setModus("radierer")}>◌ {t.carto_eraser}</button>
+            <button className={`terr-btn eraser ${mode === "eraser" ? "on" : ""}`}
+              onClick={() => setMode("eraser")}>◌ {t.carto_eraser}</button>
           </div>
 
           <div className="tool-group">
@@ -194,8 +194,8 @@ export function Cartography() {
             <span className="tool-label">{t.carto_buildings}</span>
             {ALL_BUILDINGS.map(k => (
               <button key={k}
-                className={`bld-btn ${modus === "gebaeude" && bauwerk === k ? "on" : ""}`}
-                onClick={() => { setModus("gebaeude"); setBauwerk(k); }} title={buildingLabels[k]}>
+                className={`bld-btn ${mode === "building" && building === k ? "on" : ""}`}
+                onClick={() => { setMode("building"); setBuilding(k); }} title={buildingLabels[k]}>
                 {BUILDING_ICONS[k]}
               </button>
             ))}
@@ -214,7 +214,7 @@ export function Cartography() {
           />
           {drawing.buildings.map(b => (
             <div key={b.id} className="bld-marker" style={{ left: b.x + "%", top: b.y + "%" }}>
-              <span className="bld-icon">{BUILDING_ICONS[b.kind] ?? BUILDING_ICONS.haus}</span>
+              <span className="bld-icon">{BUILDING_ICONS[b.kind] ?? BUILDING_ICONS.house}</span>
               <button className="bld-del" aria-label={t.remove}
                 onClick={() => setDrawing(z => ({ ...z, buildings: z.buildings.filter(x => x.id !== b.id) }))}>✕</button>
             </div>
@@ -224,9 +224,9 @@ export function Cartography() {
         <div className="draw-actions">
           <span className="draw-mode-hint">{modeHint}</span>
           <span style={{ flex: 1 }} />
-          <button className="gla-btn" onClick={leeren}>{t.carto_clear}</button>
+          <button className="gla-btn" onClick={clearGrid}>{t.carto_clear}</button>
           <button className="gla-btn" onClick={() => saveNow("drawing")}>{t.carto_save}</button>
-          <button className="gla-btn primary" onClick={alsKarteUebernehmen}>{t.carto_take_as_map}</button>
+          <button className="gla-btn primary" onClick={takeAsMap}>{t.carto_take_as_map}</button>
         </div>
       </div>
     </div>

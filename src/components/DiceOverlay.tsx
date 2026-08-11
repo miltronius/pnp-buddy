@@ -14,7 +14,7 @@ export function DiceOverlay() {
   const verdictText = (v: string) =>
     v === "success" ? t.verdict_success : v === "partial" ? t.verdict_partial : t.verdict_fail;
 
-  const attMod = result?.att ? balanceValue(active.attribute[result.att]) : 0;
+  const attMod = result?.att ? balanceValue(active.attrs[result.att]) : 0;
 
   return (
     <div className="table-overlay" role="dialog" aria-label={t.dice_table_aria}>
@@ -48,7 +48,7 @@ export function DiceOverlay() {
             ) : null}
             {(result.att || result.flat) ? <span className="mod"> → {result.total}</span> : null}
           </div>
-          {result.kind === "schaden" && (
+          {result.kind === "damage" && (
             <div className="dmg-total">{result.total} {t.dice_damage}</div>
           )}
           {result.verdict && (
