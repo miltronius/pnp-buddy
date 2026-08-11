@@ -79,7 +79,7 @@ export function LoginScreen() {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <h1 className="auth-title">⚓ Grand Line Assistant</h1>
+          <h1 className="auth-title">⚓ PnP Buddy</h1>
           <div className="rule" />
           <p className="auth-sub" style={{ textAlign: "center", marginTop: "1rem" }}>
             {t.login_magic_sent}
@@ -99,7 +99,7 @@ export function LoginScreen() {
   return (
     <div className="auth-screen">
       <form className="auth-card" onSubmit={submit}>
-        <h1 className="auth-title">⚓ Grand Line Assistant</h1>
+        <h1 className="auth-title">⚓ PnP Buddy</h1>
         <div className="auth-sub">
           {mode === "signIn" ? t.login_back : t.login_new}
         </div>

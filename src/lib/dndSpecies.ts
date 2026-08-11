@@ -500,23 +500,23 @@ export function speciesLevelProgression(spezies: string): SpeciesLevelGroup[] {
 // ── Apply species to character ─────────────────────────────────────────────
 
 export function applySpeciesToCharacter(char: DnDCharacter): DnDCharacter {
-  const sp = findSpecies(char.rasse);
+  const sp = findSpecies(char.species);
   if (!sp) return char;
 
-  const existing = char.merkmale.filter(m => m.herkunft !== 'SPECIES');
+  const existing = char.features.filter(m => m.origin !== 'SPECIES');
   const newFeatures: DnDFeature[] = sp.merkmale
-    .filter(m => m.stufe <= char.stufe)
+    .filter(m => m.stufe <= char.level)
     .map(m => ({
       id: newId(),
       name: m.name,
       nameEn: m.nameEn,
       description: m.beschreibung,
       descriptionEn: m.beschreibungEn,
-      herkunft: 'SPECIES' as const,
+      origin: 'SPECIES' as const,
     }));
 
   return {
     ...char,
-    merkmale: [...existing, ...newFeatures],
+    features: [...existing, ...newFeatures],
   };
 }

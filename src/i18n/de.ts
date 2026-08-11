@@ -21,7 +21,7 @@ export const de = {
   origin: 'Herkunft',
 
   // ── GrandLine Assistant ─────────────────────────────────────────────────
-  gla_header: '⚓ Grand Line Assistant',
+  gla_header: '⚓ PnP Buddy',
   gla_subtitle: 'Logbuch eurer Kampagne — Bögen, Würfel & Beute',
   gla_saving: 'speichert …',
   gla_saved: 'gespeichert ⚓',

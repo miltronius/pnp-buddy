@@ -19,7 +19,7 @@ export const en: Translations = {
   description: 'Description',
   origin: 'Origin',
 
-  gla_header: '⚓ Grand Line Assistant',
+  gla_header: '⚓ PnP Buddy',
   gla_subtitle: 'Campaign log — Sheets, Dice & Loot',
   gla_saving: 'saving …',
   gla_saved: 'saved ⚓',

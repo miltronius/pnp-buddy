@@ -5,7 +5,7 @@
    ein sauberer A4-Bogen.
    ============================================================ */
 
-import { ATTRIBUTE, type Charakter } from "../types";
+import { ATTRIBUTE, type Character } from "../types";
 import { balanceValue, withSign } from "./game";
 
 const esc = (t: unknown): string =>
@@ -16,21 +16,21 @@ const esc = (t: unknown): string =>
 
 const nl = (t: unknown): string => esc(t).replace(/\n/g, "<br>");
 
-export function exportPdf(a: Charakter, zeigeToast: (t: string) => void): void {
+export function exportPdf(a: Character, zeigeToast: (t: string) => void): void {
   const attrRows = ATTRIBUTE.map(name =>
     `<div class="p-att"><span class="p-att-name">${esc(name)}</span>` +
-    `<span class="p-att-val">${esc(a.attribute[name])}</span>` +
-    `<span class="p-att-mod">${withSign(balanceValue(a.attribute[name]))}</span></div>`,
+    `<span class="p-att-val">${esc(a.attrs[name])}</span>` +
+    `<span class="p-att-mod">${withSign(balanceValue(a.attrs[name]))}</span></div>`,
   ).join("");
 
-  const items = (a.habUndGut || []).filter(it => (it.text || "").trim());
+  const items = (a.inventory || []).filter(it => (it.text || "").trim());
   const invRows = items.length
-    ? items.map(it => `<tr><td class="p-qty">${esc(it.anzahl)}×</td><td>${esc(it.text)}</td></tr>`).join("")
+    ? items.map(it => `<tr><td class="p-qty">${esc(it.count)}×</td><td>${esc(it.text)}</td></tr>`).join("")
     : `<tr><td colspan="2" class="p-empty">—</td></tr>`;
 
-  const weapons = (a.waffen || []).filter(w => (w.name || "").trim() || (w.schaden || "").trim());
+  const weapons = (a.weapons || []).filter(w => (w.name || "").trim() || (w.damage || "").trim());
   const weaponRows = weapons.length
-    ? weapons.map(w => `<tr><td>${esc(w.name)}</td><td>${esc(w.att)}</td><td>${esc(w.schaden)}</td></tr>`).join("")
+    ? weapons.map(w => `<tr><td>${esc(w.name)}</td><td>${esc(w.att)}</td><td>${esc(w.damage)}</td></tr>`).join("")
     : "";
 
   const skills = (a.skills || []).filter(sk => (sk.name || "").trim());
@@ -38,25 +38,25 @@ export function exportPdf(a: Charakter, zeigeToast: (t: string) => void): void {
     ? skills.map(sk =>
         `<div class="p-skill"><b>${esc(sk.name)}</b>` +
         `${sk.att ? ` <span class="p-skill-att">(${esc(sk.att)})</span>` : ""}` +
-        `<div class="p-skill-desc">${nl(sk.beschreibung)}</div></div>`).join("")
+        `<div class="p-skill-desc">${nl(sk.description)}</div></div>`).join("")
     : "";
 
-  const frucht = a.teufelsfrucht || { name: "", typ: "", raenge: [] };
-  const fruchtRaenge = (frucht.raenge || [])
-    .filter(r => r.unlocked && ((r.name || "").trim() || (r.beschreibung || "").trim()));
-  const fruchtBlock = (frucht.name || fruchtRaenge.length)
+  const fruit = a.devilFruit || { name: "", type: "", ranks: [] };
+  const activeRanks = (fruit.ranks || [])
+    .filter(r => r.unlocked && ((r.name || "").trim() || (r.description || "").trim()));
+  const fruchtBlock = (fruit.name || activeRanks.length)
     ? `<h2>Teufelsfrucht</h2>
-       <div class="p-frucht-name">${esc(frucht.name || "—")}${frucht.typ ? ` <span class="p-skill-att">(${esc(frucht.typ)})</span>` : ""}</div>
-       ${fruchtRaenge.map((r, i) =>
+       <div class="p-frucht-name">${esc(fruit.name || "—")}${fruit.type ? ` <span class="p-skill-att">(${esc(fruit.type)})</span>` : ""}</div>
+       ${activeRanks.map((r, i) =>
          `<div class="p-rang"><b>${i + 1}. ${esc(r.name)}</b>` +
-         `${r.kostenText ? ` <span class="p-skill-att">— ${esc(r.kostenText)}</span>` : ""}` +
-         `<div class="p-skill-desc">${nl(r.beschreibung)}` +
-         `${r.wurfTyp === "schaden" ? `  <i>Schaden: ${esc(r.wurfSchaden)}</i>`
-            : r.wurfTyp === "probe" ? `  <i>Probe: ${esc(r.wurfAtt)}</i>` : ""}` +
+         `${r.costText ? ` <span class="p-skill-att">— ${esc(r.costText)}</span>` : ""}` +
+         `<div class="p-skill-desc">${nl(r.description)}` +
+         `${r.rollType === "damage" ? `  <i>Schaden: ${esc(r.rollDamage)}</i>`
+            : r.rollType === "check" ? `  <i>Probe: ${esc(r.rollAttr)}</i>` : ""}` +
          `</div></div>`).join("")}`
     : "";
 
-  const stufe = a.stufe > 0 ? `Stufe ${a.stufe}` : "Stufe 0 (Landratte)";
+  const stufe = a.level > 0 ? `Stufe ${a.level}` : "Stufe 0 (Landratte)";
   const field = (label: string, val: string) =>
     `<div class="p-field"><div class="p-label">${esc(label)}</div><div class="p-value">${nl(val) || "&nbsp;"}</div></div>`;
 
@@ -111,17 +111,17 @@ export function exportPdf(a: Charakter, zeigeToast: (t: string) => void): void {
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style></head><body><div class="sheet">
   <h1>${esc(a.name || "Namenloser Pirat")}</h1>
-  <div class="sub">☠ Grand Line Assistant — Charakterbogen ☠</div>
+  <div class="sub">☠ PnP Buddy — Charakterbogen ☠</div>
   <div class="rule"></div>
   <div class="p-head"><span class="stufe">${esc(stufe)}</span></div>
   <div class="vitals">
-    <span class="vital">❤ ${esc(a.leben)}<small>Leben</small></span>
-    <span class="vital">⚔ ${esc(a.schaden)}<small>Schaden</small></span>
+    <span class="vital">❤ ${esc(a.hp)}<small>Leben</small></span>
+    <span class="vital">⚔ ${esc(a.damage)}<small>Schaden</small></span>
     <span class="vital">☠ ${esc(a.berries)}<small>Berries</small></span>
   </div>
   <div class="row">
-    <div class="col">${field("Aussehen", a.aussehen)}${field("Spezialeigenschaften", a.spezial)}</div>
-    <div class="col">${field("Ziel im Leben", a.ziel)}${field("Eigenschaften", a.eigenschaften)}</div>
+    <div class="col">${field("Aussehen", a.appearance)}${field("Spezialeigenschaften", a.special)}</div>
+    <div class="col">${field("Ziel im Leben", a.goal)}${field("Eigenschaften", a.traits)}</div>
   </div>
   <h2>Attribute</h2>
   <div class="att-grid">${attrRows}</div>
@@ -130,7 +130,7 @@ export function exportPdf(a: Charakter, zeigeToast: (t: string) => void): void {
   ${fruchtBlock}
   <h2>Hab und Gut</h2>
   <table>${invRows}</table>
-  <div class="foot">Ausgedruckt aus dem Grand Line Assistant</div>
+  <div class="foot">Ausgedruckt aus PnP Buddy</div>
 </div>
 <script>window.onload = () => { setTimeout(() => window.print(), 350); };<\/script>
 </body></html>`;
