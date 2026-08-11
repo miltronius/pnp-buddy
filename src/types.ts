@@ -1,7 +1,6 @@
 /* ============================================================
-   Datenmodell des Grand Line Assistant.
-   Die Namen entsprechen dem Prototyp — der Migrationsvertrag aus
-   CLAUDE.md bleibt damit unverändert erhalten.
+   Data model for Grand Line Assistant.
+   All identifiers are in English; persistence keys remain unchanged.
    ============================================================ */
 
 export const ATTRIBUTE = [
@@ -10,145 +9,145 @@ export const ATTRIBUTE = [
   "Charisma", "Navigation", "Heilkunde",
 ] as const;
 
-export type AttributName = (typeof ATTRIBUTE)[number];
-export type Attributwerte = Record<AttributName, number>;
+export type AttrName = (typeof ATTRIBUTE)[number];
+export type AttrValues = Record<AttrName, number>;
 
-/* ---------- Charakter ---------- */
+/* ---------- Character ---------- */
 
-export interface Gegenstand {
+export interface Item {
   id: string;
   text: string;
-  anzahl: number;
+  count: number;
 }
 
-export interface Waffe {
+export interface Weapon {
   id: string;
   name: string;
-  att: AttributName;
-  schaden: string;
+  att: AttrName;
+  damage: string;
 }
 
 export interface Skill {
   id: string;
   name: string;
-  att: AttributName | "";
-  beschreibung: string;
+  att: AttrName | "";
+  description: string;
 }
 
-export type WurfTyp = "" | "probe" | "schaden";
-export type FruchtTyp = "" | "Paramecia" | "Zoan" | "Logia";
+export type RollType = "" | "check" | "damage";
+export type FruitType = "" | "Paramecia" | "Zoan" | "Logia";
 
-export interface FruchtRang {
+export interface FruitRank {
   id: string;
   name: string;
-  beschreibung: string;
-  kostenLevel: number;
-  wurfTyp: WurfTyp;
-  wurfAtt: AttributName;
-  wurfSchaden: string;
-  kostenText: string;
+  description: string;
+  costLevel: number;
+  rollType: RollType;
+  rollAttr: AttrName;
+  rollDamage: string;
+  costText: string;
   unlocked: boolean;
 }
 
-export interface Teufelsfrucht {
+export interface DevilFruit {
   name: string;
-  typ: FruchtTyp;
-  raenge: FruchtRang[];
+  type: FruitType;
+  ranks: FruitRank[];
 }
 
-export interface Charakter {
+export interface Character {
   id: string;
   name: string;
-  stufe: number;
-  leben: number;
-  schaden: string;
-  aussehen: string;
-  ziel: string;
-  spezial: string;
-  eigenschaften: string;
-  habUndGut: Gegenstand[];
-  waffen: Waffe[];
+  level: number;
+  hp: number;
+  damage: string;
+  appearance: string;
+  goal: string;
+  special: string;
+  traits: string;
+  inventory: Item[];
+  weapons: Weapon[];
   skills: Skill[];
-  teufelsfrucht: Teufelsfrucht;
-  kopfgeld: number;
-  /** Data-URL (lokaler Modus) oder Storage-Pfad (Cloud-Modus). */
+  devilFruit: DevilFruit;
+  bounty: number;
+  /** Data URL (local mode) or storage path (cloud mode). */
   portrait: string | null;
-  epitheton: string;
+  epithet: string;
   berries: number;
-  attribute: Attributwerte;
+  attrs: AttrValues;
 }
 
-/* ---------- Crew & Schiff ---------- */
+/* ---------- Crew & Ship ---------- */
 
 export interface Crew {
   name: string;
   jollyRoger: string | null;
-  schiffName: string;
-  schiffBeschreibung: string;
-  flotte: string;
+  shipName: string;
+  shipDescription: string;
+  fleet: string;
 }
 
-/* ---------- Karte (Figuren-Tracker) ---------- */
+/* ---------- Map (token tracker) ---------- */
 
-export type TokenArt = "crew" | "gegner" | "insel" | "schiff" | "ziel";
+export type TokenType = "crew" | "enemy" | "island" | "ship" | "target";
 
 export interface MapToken {
   id: string;
   label: string;
-  kind: TokenArt;
+  kind: TokenType;
   color: string;
-  /** Prozent der Kartenbreite/-höhe, damit die Lage skaliert. */
+  /** Percent of map width/height so position scales. */
   x: number;
   y: number;
   ref: string | null;
 }
 
-export interface KartenZustand {
+export interface MapState {
   bg: string | null;
   gridOn: boolean;
   tokens: MapToken[];
 }
 
-/* ---------- Kartografie (Insel-Zeichentool) ---------- */
+/* ---------- Cartography (island drawing tool) ---------- */
 
-export type TerrainArt = "wasser" | "strand" | "gruen" | "wald" | "fels" | "weg";
-export type BauwerkArt =
-  | "haus" | "turm" | "taverne" | "hafen"
-  | "schatz" | "kreuz" | "baum" | "berg";
+export type TerrainType = "water" | "beach" | "grass" | "forest" | "rock" | "path";
+export type BuildingType =
+  | "house" | "tower" | "tavern" | "harbor"
+  | "treasure" | "cross" | "tree" | "mountain";
 
-export interface Zeichenraster {
+export interface DrawingGrid {
   cols: number;
   rows: number;
-  cells: TerrainArt[];
+  cells: TerrainType[];
 }
 
-export interface Bauwerk {
+export interface Building {
   id: string;
-  kind: BauwerkArt;
+  kind: BuildingType;
   x: number;
   y: number;
 }
 
-export interface ZeichnungZustand {
-  grid: Zeichenraster | null;
-  buildings: Bauwerk[];
+export interface DrawingState {
+  grid: DrawingGrid | null;
+  buildings: Building[];
 }
 
-/* ---------- Schauplatz (Detail-Editor) ---------- */
+/* ---------- Scene (detail editor) ---------- */
 
-export type BodenArt = "stein" | "holz" | "gras" | "wasser" | "sand";
+export type FloorType = "stone" | "wood" | "grass" | "water" | "sand";
 
 export interface DetailRect {
   id: string;
   type: "rect";
   x: number; y: number; w: number; h: number;
-  terr: BodenArt;
+  terr: FloorType;
 }
 export interface DetailCircle {
   id: string;
   type: "circle";
   cx: number; cy: number; rx: number; ry: number;
-  terr: BodenArt;
+  terr: FloorType;
 }
 export interface DetailWall {
   id: string;
@@ -162,84 +161,84 @@ export interface DetailLabel {
   x: number; y: number;
   text: string;
 }
-export type DetailObjekt = DetailRect | DetailCircle | DetailWall | DetailLabel;
+export type DetailObject = DetailRect | DetailCircle | DetailWall | DetailLabel;
 
-export interface SchauplatzZustand {
-  objects: DetailObjekt[];
-  bg: BodenArt;
+export interface SceneState {
+  objects: DetailObject[];
+  bg: FloorType;
 }
 
-/* ---------- Logbuch ---------- */
+/* ---------- Logbook ---------- */
 
 export interface Quest {
   id: string;
-  titel: string;
-  notiz: string;
-  erledigt: boolean;
+  title: string;
+  note: string;
+  done: boolean;
 }
 
-export interface LogbuchZustand {
-  notizen: string;
+export interface LogbookState {
+  notes: string;
   quests: Quest[];
 }
 
-/* ---------- Kampf-Tracker (nur zur Laufzeit, wird nicht gespeichert) ---------- */
+/* ---------- Combat tracker (runtime only, not persisted) ---------- */
 
-export type Seite = "crew" | "gegner";
+export type Side = "crew" | "enemy";
 
-export interface Kaempfer {
+export interface Fighter {
   id: string;
   charId: string | null;
   name: string;
-  seite: Seite;
-  iniAtt: AttributName;
-  ini: number | null;
+  side: Side;
+  initAttr: AttrName;
+  initiative: number | null;
   hp: number;
   maxHp: number;
-  tot: boolean;
-  iniMod?: number;
-  atkMod?: number;
-  atkDmg?: string;
+  dead: boolean;
+  initMod?: number;
+  attackMod?: number;
+  attackDamage?: string;
 }
 
-/* ---------- Würfeltisch ---------- */
+/* ---------- Dice table ---------- */
 
-export type WurfArt = "wurf" | "probe" | "schaden" | "initiative";
-export type Verdikt = "ok" | "mid" | "fail";
-export type Wuerfelseiten = 4 | 6 | 8 | 10 | 12 | 20 | 100;
+export type RollKind = "roll" | "check" | "damage" | "initiative";
+export type Verdict = "ok" | "mid" | "fail";
+export type DieSides = 4 | 6 | 8 | 10 | 12 | 20 | 100;
 
-export interface Wuerfelgruppe {
+export interface DiceGroup {
   n: number;
-  sides: Wuerfelseiten;
+  sides: DieSides;
 }
 
-/** Ein angestoßener Wurf — steuert den Vollbild-Würfeltisch. */
-export interface WurfSpezifikation {
+/** A triggered roll — controls the fullscreen dice table. */
+export interface RollSpec {
   id: number;
   count: number;
-  sides: Wuerfelseiten;
-  att: AttributName | null;
+  sides: DieSides;
+  att: AttrName | null;
   label: string | null;
   flat: number;
-  kind: WurfArt;
-  /** Gemischter Schaden (z. B. W8 + W6) wird gruppenweise nacheinander geworfen. */
-  groups?: Wuerfelgruppe[];
+  kind: RollKind;
+  /** Mixed damage (e.g. d8 + d6) is rolled group by group in sequence. */
+  groups?: DiceGroup[];
   groupIndex?: number;
   carriedVals?: number[];
   backTo?: TabName | null;
   fighterId?: string | null;
 }
 
-export interface WurfErgebnis {
+export interface RollResult {
   vals: number[];
   sum: number;
   mod: number;
   total: number;
-  att: AttributName | null;
-  verdict: Verdikt | null;
-  sides: Wuerfelseiten;
+  att: AttrName | null;
+  verdict: Verdict | null;
+  sides: DieSides;
   label: string | null;
-  kind: WurfArt;
+  kind: RollKind;
   flat: number;
   fighterId: string | null;
 }
@@ -247,18 +246,18 @@ export interface WurfErgebnis {
 /* ---------- Navigation ---------- */
 
 export type TabName =
-  | "bogen" | "wuerfel" | "kampf" | "karte"
-  | "zeichnen" | "detail" | "notizen" | "crew";
+  | "sheet" | "dice" | "combat" | "map"
+  | "cartography" | "scene" | "logbook" | "crew";
 
 export type SystemName = "pnp" | "dnd";
 
-/* ---------- Gesamtzustand einer Kampagne ---------- */
+/* ---------- Campaign data ---------- */
 
-export interface KampagnenDaten {
-  chars: Charakter[];
+export interface CampaignData {
+  chars: Character[];
   crew: Crew;
-  karte: KartenZustand;
-  zeichnung: ZeichnungZustand;
-  schauplatz: SchauplatzZustand;
-  logbuch: LogbuchZustand;
+  map: MapState;
+  drawing: DrawingState;
+  scene: SceneState;
+  logbook: LogbookState;
 }

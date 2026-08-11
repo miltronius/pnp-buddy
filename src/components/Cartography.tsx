@@ -3,24 +3,21 @@ import type { BauwerkArt, TerrainArt, Zeichenraster } from "../types";
 import { newId } from "../lib/game";
 import { useCampaign } from "../state/CampaignContext";
 import { useSession } from "../state/SessionContext";
+import { useT } from "../i18n";
 
 export const TERRAIN_COLORS: Record<TerrainArt, string> = {
   wasser: "#2b6d8f", strand: "#e3d29a", gruen: "#5a9e52",
   wald: "#2f6d3a", fels: "#7d766b", weg: "#c2ac7a",
 };
-const TERRAIN_LABELS: Record<TerrainArt, string> = {
-  wasser: "Wasser", strand: "Strand", gruen: "Wiese",
-  wald: "Wald", fels: "Fels", weg: "Weg",
-};
-const BUILDINGS: Record<BauwerkArt, { icon: string; label: string }> = {
-  haus: { icon: "🏠", label: "Haus" }, turm: { icon: "🗼", label: "Turm" },
-  taverne: { icon: "🍺", label: "Taverne" }, hafen: { icon: "⚓", label: "Hafen" },
-  schatz: { icon: "💰", label: "Schatz" }, kreuz: { icon: "❌", label: "X-Markiert-die-Stelle" },
-  baum: { icon: "🌴", label: "Palme" }, berg: { icon: "⛰", label: "Berg" },
+
+const BUILDING_ICONS: Record<BauwerkArt, string> = {
+  haus: "🏠", turm: "🗼", taverne: "🍺", hafen: "⚓",
+  schatz: "💰", kreuz: "❌", baum: "🌴", berg: "⛰",
 };
 
 const GRID_COLS = 60, GRID_ROWS = 40;
 const MALBAR: TerrainArt[] = ["gruen", "wald", "strand", "wasser", "fels", "weg"];
+const ALL_BUILDINGS = Object.keys(BUILDING_ICONS) as BauwerkArt[];
 
 const leeresRaster = (): Zeichenraster => ({
   cols: GRID_COLS, rows: GRID_ROWS,
@@ -32,6 +29,17 @@ type Malmodus = "terrain" | "gebaeude" | "radierer";
 export function Cartography() {
   const { drawing, setDrawing, setMap, storage, saveNow, showToast } = useCampaign();
   const { setTab } = useSession();
+  const t = useT();
+
+  const terrainLabels: Record<TerrainArt, string> = {
+    wasser: t.carto_terrain_water, strand: t.carto_terrain_beach, gruen: t.carto_terrain_meadow,
+    wald: t.carto_terrain_forest, fels: t.carto_terrain_rock, weg: t.carto_terrain_path,
+  };
+  const buildingLabels: Record<BauwerkArt, string> = {
+    haus: t.carto_building_house, turm: t.carto_building_tower, taverne: t.carto_building_tavern,
+    hafen: t.carto_building_harbor, schatz: t.carto_building_treasure, kreuz: t.carto_building_x,
+    baum: t.carto_building_palm, berg: t.carto_building_mountain,
+  };
 
   const [terrain, setTerrain] = useState<TerrainArt>("gruen");
   const [bauwerk, setBauwerk] = useState<BauwerkArt>("haus");
@@ -42,7 +50,6 @@ export function Cartography() {
   const gridRef = useRef<Zeichenraster>(drawing.grid ?? leeresRaster());
   const malend = useRef(false);
 
-  /* ---- Raster aufs Canvas zeichnen ---- */
   function render(g: Zeichenraster) {
     const cv = canvasRef.current;
     if (!cv) return;
@@ -58,14 +65,12 @@ export function Cartography() {
     }
   }
 
-  // Nach dem Laden (oder nach einem Commit) das Raster übernehmen und neu zeichnen.
   useEffect(() => {
     if (drawing.grid && drawing.grid !== gridRef.current) gridRef.current = drawing.grid;
     render(gridRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawing.grid]);
 
-  /** Gemalte Zellen in den Kampagnen-Zustand übernehmen (löst das Speichern aus). */
   function commit() {
     const g = gridRef.current;
     setDrawing(z => ({ ...z, grid: { ...g, cells: [...g.cells] } }));
@@ -128,11 +133,9 @@ export function Cartography() {
     setDrawing({ grid: { ...g, cells: [...g.cells] }, buildings: [] });
   }
 
-  /** Zeichnung als Bild-Hintergrund in den Figuren-Tracker übernehmen. */
   async function alsKarteUebernehmen() {
     const cv = canvasRef.current;
-    if (!cv || !drawing.grid) { showToast("Erst etwas zeichnen"); return; }
-    // Gebäude aufs Bild brennen
+    if (!cv || !drawing.grid) { showToast(t.carto_draw_first); return; }
     const out = document.createElement("canvas");
     out.width = cv.width; out.height = cv.height;
     const ctx = out.getContext("2d");
@@ -142,39 +145,45 @@ export function Cartography() {
     ctx.textBaseline = "middle";
     ctx.font = `${Math.round(out.width / 28)}px serif`;
     for (const b of drawing.buildings) {
-      const icon = (BUILDINGS[b.kind] ?? BUILDINGS.haus).icon;
+      const icon = BUILDING_ICONS[b.kind] ?? BUILDING_ICONS.haus;
       ctx.fillText(icon, (b.x / 100) * out.width, (b.y / 100) * out.height);
     }
     try {
       const wert = await storage.bildSpeichern(out.toDataURL("image/jpeg", 0.85));
       setMap(k => ({ ...k, bg: wert }));
       setTab("karte");
-      showToast("Zeichnung als Karte übernommen ⚓");
+      showToast(t.carto_taken);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Übernahme fehlgeschlagen");
+      showToast(err instanceof Error ? err.message : t.carto_failed);
     }
   }
+
+  const modeHint = modus === "gebaeude"
+    ? t.carto_hint_place.replace('[0]', buildingLabels[bauwerk])
+    : modus === "radierer"
+      ? t.carto_hint_erase
+      : t.carto_hint_paint.replace('[0]', terrainLabels[terrain]);
 
   return (
     <div style={{ padding: "0 14px" }}>
       <div className="draw-panel">
         <div className="draw-tools">
           <div className="tool-group">
-            <span className="tool-label">Malen:</span>
-            {MALBAR.map(t => (
-              <button key={t}
-                className={`terr-btn ${modus === "terrain" && terrain === t ? "on" : ""}`}
-                style={{ "--terr": TERRAIN_COLORS[t] } as CSSProperties}
-                onClick={() => { setModus("terrain"); setTerrain(t); }}>
-                <span className="terr-swatch" />{TERRAIN_LABELS[t]}
+            <span className="tool-label">{t.carto_paint}</span>
+            {MALBAR.map(tr => (
+              <button key={tr}
+                className={`terr-btn ${modus === "terrain" && terrain === tr ? "on" : ""}`}
+                style={{ "--terr": TERRAIN_COLORS[tr] } as CSSProperties}
+                onClick={() => { setModus("terrain"); setTerrain(tr); }}>
+                <span className="terr-swatch" />{terrainLabels[tr]}
               </button>
             ))}
             <button className={`terr-btn eraser ${modus === "radierer" ? "on" : ""}`}
-              onClick={() => setModus("radierer")}>◌ Radierer</button>
+              onClick={() => setModus("radierer")}>◌ {t.carto_eraser}</button>
           </div>
 
           <div className="tool-group">
-            <span className="tool-label">Pinsel:</span>
+            <span className="tool-label">{t.carto_brush}</span>
             {[1, 2, 3, 5].map(b => (
               <button key={b} className={`brush-btn ${brush === b ? "on" : ""}`}
                 onClick={() => setBrush(b)}>{b}</button>
@@ -182,11 +191,13 @@ export function Cartography() {
           </div>
 
           <div className="tool-group">
-            <span className="tool-label">Bauwerke:</span>
-            {(Object.entries(BUILDINGS) as [BauwerkArt, { icon: string; label: string }][]).map(([k, b]) => (
+            <span className="tool-label">{t.carto_buildings}</span>
+            {ALL_BUILDINGS.map(k => (
               <button key={k}
                 className={`bld-btn ${modus === "gebaeude" && bauwerk === k ? "on" : ""}`}
-                onClick={() => { setModus("gebaeude"); setBauwerk(k); }} title={b.label}>{b.icon}</button>
+                onClick={() => { setModus("gebaeude"); setBauwerk(k); }} title={buildingLabels[k]}>
+                {BUILDING_ICONS[k]}
+              </button>
             ))}
           </div>
         </div>
@@ -203,25 +214,19 @@ export function Cartography() {
           />
           {drawing.buildings.map(b => (
             <div key={b.id} className="bld-marker" style={{ left: b.x + "%", top: b.y + "%" }}>
-              <span className="bld-icon">{(BUILDINGS[b.kind] ?? BUILDINGS.haus).icon}</span>
-              <button className="bld-del" aria-label="Bauwerk entfernen"
+              <span className="bld-icon">{BUILDING_ICONS[b.kind] ?? BUILDING_ICONS.haus}</span>
+              <button className="bld-del" aria-label={t.remove}
                 onClick={() => setDrawing(z => ({ ...z, buildings: z.buildings.filter(x => x.id !== b.id) }))}>✕</button>
             </div>
           ))}
         </div>
 
         <div className="draw-actions">
-          <span className="draw-mode-hint">
-            {modus === "gebaeude"
-              ? `Tippe auf die Karte, um „${BUILDINGS[bauwerk].label}“ zu setzen`
-              : modus === "radierer"
-                ? "Übermalt alles wieder mit Wasser"
-                : `Zeichnet ${TERRAIN_LABELS[terrain]} — ziehen zum Malen`}
-          </span>
+          <span className="draw-mode-hint">{modeHint}</span>
           <span style={{ flex: 1 }} />
-          <button className="gla-btn" onClick={leeren}>Leeren</button>
-          <button className="gla-btn" onClick={() => saveNow("drawing")}>Speichern</button>
-          <button className="gla-btn primary" onClick={alsKarteUebernehmen}>Als Karte übernehmen →</button>
+          <button className="gla-btn" onClick={leeren}>{t.carto_clear}</button>
+          <button className="gla-btn" onClick={() => saveNow("drawing")}>{t.carto_save}</button>
+          <button className="gla-btn primary" onClick={alsKarteUebernehmen}>{t.carto_take_as_map}</button>
         </div>
       </div>
     </div>

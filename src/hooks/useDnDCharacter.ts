@@ -1,39 +1,41 @@
 import { useCallback, useRef, useState } from "react";
 import { emptyCharacter, newId } from "../lib/dndGame";
-import type { DnDCharakter, DnDMerkmal, DnDRessource, DnDSlotStufe, DnDZauber } from "../types/dnd";
+import { applyClassToCharacter } from "../lib/dndClasses";
+import { applySpeciesToCharacter } from "../lib/dndSpecies";
+import type { DnDCharacter, DnDFeature, DnDResource, DnDSlotLevel, DnDSpell } from "../types/dnd";
 
 const KEY = 'gla:dnd:char';
 
-function laden(): DnDCharakter {
+function load(): DnDCharacter {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) return { ...emptyCharacter(), ...JSON.parse(raw) };
-  } catch { /* ignorieren */ }
+  } catch { /* ignore */ }
   return emptyCharacter();
 }
 
 export function useDnDCharacter() {
-  const [char, setCharRaw] = useState<DnDCharakter>(laden);
+  const [char, setCharRaw] = useState<DnDCharacter>(load);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const setChar = useCallback((updater: (c: DnDCharakter) => DnDCharakter) => {
+  const setChar = useCallback((updater: (c: DnDCharacter) => DnDCharacter) => {
     setCharRaw(prev => {
       const next = updater(prev);
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
-        try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* ignorieren */ }
+        try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* ignore */ }
       }, 600);
       return next;
     });
   }, []);
 
-  const setFeld = useCallback(<K extends keyof DnDCharakter>(k: K, v: DnDCharakter[K]) => {
+  const setField = useCallback(<K extends keyof DnDCharacter>(k: K, v: DnDCharacter[K]) => {
     setChar(c => ({ ...c, [k]: v }));
   }, [setChar]);
 
-  /* ---------- Zauberschlitze ---------- */
+  /* ---------- Spell Slots ---------- */
 
-  const slotNutzen = useCallback((stufe: number) => {
+  const useSlot = useCallback((stufe: number) => {
     setChar(c => {
       const s = c.zauberschlitze[stufe];
       if (!s || s.aktuell <= 0) return c;
@@ -41,7 +43,7 @@ export function useDnDCharacter() {
     });
   }, [setChar]);
 
-  const slotAuffuellen = useCallback((stufe: number) => {
+  const refillSlot = useCallback((stufe: number) => {
     setChar(c => {
       const s = c.zauberschlitze[stufe];
       if (!s || s.aktuell >= s.max) return c;
@@ -49,7 +51,7 @@ export function useDnDCharacter() {
     });
   }, [setChar]);
 
-  const slotMaxSetzen = useCallback((stufe: number, max: number) => {
+  const setSlotMax = useCallback((stufe: number, max: number) => {
     setChar(c => {
       if (max <= 0) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -57,12 +59,12 @@ export function useDnDCharacter() {
         return { ...c, zauberschlitze: rest };
       }
       const prev = c.zauberschlitze[stufe];
-      const slot: DnDSlotStufe = { max, aktuell: Math.min(prev?.aktuell ?? max, max) };
+      const slot: DnDSlotLevel = { max, aktuell: Math.min(prev?.aktuell ?? max, max) };
       return { ...c, zauberschlitze: { ...c.zauberschlitze, [stufe]: slot } };
     });
   }, [setChar]);
 
-  const langeRast = useCallback(() => {
+  const longRest = useCallback(() => {
     setChar(c => ({
       ...c,
       zauberschlitze: Object.fromEntries(
@@ -72,7 +74,7 @@ export function useDnDCharacter() {
     }));
   }, [setChar]);
 
-  const kurzeRast = useCallback(() => {
+  const shortRest = useCallback(() => {
     setChar(c => ({
       ...c,
       ressourcen: c.ressourcen.map(r =>
@@ -81,37 +83,37 @@ export function useDnDCharacter() {
     }));
   }, [setChar]);
 
-  /* ---------- Konzentration ---------- */
+  /* ---------- Concentration ---------- */
 
-  const setKonzentration = useCallback((id: string | null) => {
+  const setConcentration = useCallback((id: string | null) => {
     setChar(c => ({ ...c, konzentration: id }));
   }, [setChar]);
 
-  /* ---------- Merkmale ---------- */
+  /* ---------- Features ---------- */
 
-  const merkmalHinzu = useCallback((m: Omit<DnDMerkmal, 'id'>) => {
+  const addFeature = useCallback((m: Omit<DnDFeature, 'id'>) => {
     setChar(c => ({ ...c, merkmale: [...c.merkmale, { ...m, id: newId() }] }));
   }, [setChar]);
 
-  const merkmalAktuell = useCallback((m: DnDMerkmal) => {
+  const updateFeature = useCallback((m: DnDFeature) => {
     setChar(c => ({ ...c, merkmale: c.merkmale.map(x => x.id === m.id ? m : x) }));
   }, [setChar]);
 
-  const merkmalLoeschen = useCallback((id: string) => {
+  const removeFeature = useCallback((id: string) => {
     setChar(c => ({ ...c, merkmale: c.merkmale.filter(x => x.id !== id) }));
   }, [setChar]);
 
-  /* ---------- Zauber ---------- */
+  /* ---------- Spells ---------- */
 
-  const zauberHinzu = useCallback((z: Omit<DnDZauber, 'id'>) => {
+  const addSpell = useCallback((z: Omit<DnDSpell, 'id'>) => {
     setChar(c => ({ ...c, zauber: [...c.zauber, { ...z, id: newId() }] }));
   }, [setChar]);
 
-  const zauberAktuell = useCallback((z: DnDZauber) => {
+  const updateSpell = useCallback((z: DnDSpell) => {
     setChar(c => ({ ...c, zauber: c.zauber.map(x => x.id === z.id ? z : x) }));
   }, [setChar]);
 
-  const zauberLoeschen = useCallback((id: string) => {
+  const removeSpell = useCallback((id: string) => {
     setChar(c => ({
       ...c,
       zauber: c.zauber.filter(x => x.id !== id),
@@ -119,9 +121,9 @@ export function useDnDCharacter() {
     }));
   }, [setChar]);
 
-  /* ---------- Ressourcen ---------- */
+  /* ---------- Resources ---------- */
 
-  const ressourceNutzen = useCallback((id: string) => {
+  const useResource = useCallback((id: string) => {
     setChar(c => ({
       ...c,
       ressourcen: c.ressourcen.map(r =>
@@ -130,7 +132,7 @@ export function useDnDCharacter() {
     }));
   }, [setChar]);
 
-  const ressourceZurueck = useCallback((id: string) => {
+  const refillResource = useCallback((id: string) => {
     setChar(c => ({
       ...c,
       ressourcen: c.ressourcen.map(r =>
@@ -139,26 +141,36 @@ export function useDnDCharacter() {
     }));
   }, [setChar]);
 
-  const ressourceHinzu = useCallback((r: Omit<DnDRessource, 'id'>) => {
+  const addResource = useCallback((r: Omit<DnDResource, 'id'>) => {
     setChar(c => ({ ...c, ressourcen: [...c.ressourcen, { ...r, id: newId() }] }));
   }, [setChar]);
 
-  const ressourceAktuell = useCallback((r: DnDRessource) => {
+  const updateResource = useCallback((r: DnDResource) => {
     setChar(c => ({ ...c, ressourcen: c.ressourcen.map(x => x.id === r.id ? r : x) }));
   }, [setChar]);
 
-  const ressourceLoeschen = useCallback((id: string) => {
+  const removeResource = useCallback((id: string) => {
     setChar(c => ({ ...c, ressourcen: c.ressourcen.filter(x => x.id !== id) }));
+  }, [setChar]);
+
+  const applyClass = useCallback(() => {
+    setChar(c => applySpeciesToCharacter(applyClassToCharacter(c)));
+  }, [setChar]);
+
+  const setMetamagic = useCallback((options: string[]) => {
+    setChar(c => ({ ...c, metamagic: options }));
   }, [setChar]);
 
   return {
     char,
-    setFeld,
-    slotNutzen, slotAuffuellen, slotMaxSetzen,
-    langeRast, kurzeRast,
-    setKonzentration,
-    merkmalHinzu, merkmalAktuell, merkmalLoeschen,
-    zauberHinzu, zauberAktuell, zauberLoeschen,
-    ressourceNutzen, ressourceZurueck, ressourceHinzu, ressourceAktuell, ressourceLoeschen,
+    setField,
+    applyClass,
+    setMetamagic,
+    useSlot, refillSlot, setSlotMax,
+    longRest, shortRest,
+    setConcentration,
+    addFeature, updateFeature, removeFeature,
+    addSpell, updateSpell, removeSpell,
+    useResource, refillResource, addResource, updateResource, removeResource,
   };
 }

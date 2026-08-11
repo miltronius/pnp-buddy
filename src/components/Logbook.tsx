@@ -2,14 +2,15 @@ import { useState } from "react";
 import type { Quest } from "../types";
 import { newId } from "../lib/game";
 import { useCampaign } from "../state/CampaignContext";
+import { useT } from "../i18n";
 
 export function Logbook() {
   const { logbook, setLogbook, saveNow } = useCampaign();
+  const t = useT();
   const [neueQuest, setNeueQuest] = useState("");
 
   const quests = logbook.quests;
 
-  // Offene zuerst, sonst Eintragsreihenfolge
   const sortiert = quests
     .map((q, i) => ({ ...q, _i: i }))
     .sort((a, b) => (a.erledigt !== b.erledigt ? (a.erledigt ? 1 : -1) : a._i - b._i));
@@ -18,14 +19,17 @@ export function Logbook() {
     setLogbook(l => ({ ...l, quests: f(l.quests) }));
 
   function addQuest() {
-    const t = neueQuest.trim();
-    if (!t) return;
-    setQuests(qs => [...qs, { id: newId("q"), titel: t.slice(0, 120), notiz: "", erledigt: false }]);
+    const text = neueQuest.trim();
+    if (!text) return;
+    setQuests(qs => [...qs, { id: newId("q"), titel: text.slice(0, 120), notiz: "", erledigt: false }]);
     setNeueQuest("");
   }
 
   const patchQuest = (id: string, p: Partial<Quest>) =>
     setQuests(qs => qs.map(q => (q.id === id ? { ...q, ...p } : q)));
+
+  const openCount = quests.filter(q => !q.erledigt).length;
+  const doneCount = quests.filter(q => q.erledigt).length;
 
   return (
     <div style={{ padding: "0 14px" }}>
@@ -33,21 +37,21 @@ export function Logbook() {
         <div className="notes-grid">
           <div className="notes-col">
             <div className="notes-head">
-              <h3 className="sheet-title" style={{ margin: 0, textAlign: "left", fontSize: 22 }}>Questlog</h3>
+              <h3 className="sheet-title" style={{ margin: 0, textAlign: "left", fontSize: 22 }}>{t.log_quests}</h3>
               <span className="quest-count">
-                {quests.filter(q => !q.erledigt).length} offen · {quests.filter(q => q.erledigt).length} erledigt
+                {openCount} {t.log_open} · {doneCount} {t.log_done}
               </span>
             </div>
 
             <div className="quest-add">
-              <input className="gla-input" value={neueQuest} placeholder="Neuen Auftrag eintragen…"
+              <input className="gla-input" value={neueQuest} placeholder={t.log_quest_placeholder}
                 onChange={e => setNeueQuest(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") addQuest(); }} />
-              <button className="gla-btn" onClick={addQuest}>+ Quest</button>
+              <button className="gla-btn" onClick={addQuest}>{t.log_add_quest}</button>
             </div>
 
             {quests.length === 0 && (
-              <p className="section-empty">Noch keine Aufträge. Was treibt die Crew an?</p>
+              <p className="section-empty">{t.log_no_quests}</p>
             )}
 
             <div className="quest-list">
@@ -55,16 +59,16 @@ export function Logbook() {
                 <div className={`quest ${q.erledigt ? "done" : ""}`} key={q.id}>
                   <button className="quest-check"
                     onClick={() => patchQuest(q.id, { erledigt: !q.erledigt })}
-                    aria-label={q.erledigt ? "Als offen markieren" : "Als erledigt markieren"}>
+                    aria-label={q.erledigt ? t.log_mark_open : t.log_mark_done}>
                     {q.erledigt ? "☑" : "☐"}
                   </button>
                   <div className="quest-body">
-                    <input className="quest-title" value={q.titel} aria-label="Questtitel"
+                    <input className="quest-title" value={q.titel}
                       onChange={e => patchQuest(q.id, { titel: e.target.value })} />
-                    <textarea className="quest-notiz" value={q.notiz} placeholder="Details, Hinweise, Belohnung…"
+                    <textarea className="quest-notiz" value={q.notiz}
                       onChange={e => patchQuest(q.id, { notiz: e.target.value })} />
                   </div>
-                  <button className="quest-del" aria-label="Quest löschen"
+                  <button className="quest-del" aria-label={t.log_delete}
                     onClick={() => setQuests(qs => qs.filter(x => x.id !== q.id))}>✕</button>
                 </div>
               ))}
@@ -72,15 +76,15 @@ export function Logbook() {
           </div>
 
           <div className="notes-col">
-            <h3 className="sheet-title" style={{ margin: "0 0 8px", textAlign: "left", fontSize: 22 }}>Notizen</h3>
+            <h3 className="sheet-title" style={{ margin: "0 0 8px", textAlign: "left", fontSize: 22 }}>{t.log_notes}</h3>
             <textarea className="notes-area" value={logbook.notizen}
-              placeholder="Freie Notizen der Spielleitung: NPCs, Geheimnisse, lose Fäden, Weltgeschehen…"
+              placeholder={t.log_notes_placeholder}
               onChange={e => setLogbook(l => ({ ...l, notizen: e.target.value }))} />
           </div>
         </div>
 
         <div className="save-bar" style={{ marginTop: 14 }}>
-          <button className="gla-btn" onClick={() => saveNow("logbook")}>Logbuch speichern</button>
+          <button className="gla-btn" onClick={() => saveNow("logbook")}>{t.log_save}</button>
         </div>
       </div>
     </div>

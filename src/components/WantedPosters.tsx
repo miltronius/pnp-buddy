@@ -2,10 +2,12 @@ import type { ChangeEvent } from "react";
 import { loadImageScaled } from "../lib/images";
 import { formatBerry } from "../lib/game";
 import { useCampaign } from "../state/CampaignContext";
+import { useT } from "../i18n";
 import { NumberInput } from "./NumberInput";
 
 export function WantedPosters() {
   const { chars, setChars, crew, setCrew, storage, saveNow, showToast } = useCampaign();
+  const t = useT();
 
   const jollyUrl = storage.bildUrl(crew.jollyRoger);
 
@@ -18,7 +20,7 @@ export function WantedPosters() {
       const wert = await storage.bildSpeichern(datenUrl);
       setCrew(c => ({ ...c, jollyRoger: wert }));
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Bild konnte nicht geladen werden");
+      showToast(err instanceof Error ? err.message : t.map_load_error);
     }
   }
 
@@ -30,9 +32,9 @@ export function WantedPosters() {
       const datenUrl = await loadImageScaled(file, 600, { square: true });
       const wert = await storage.bildSpeichern(datenUrl);
       setChars(cs => cs.map(c => (c.id === charId ? { ...c, portrait: wert } : c)));
-      showToast("Porträt gesetzt ⚓");
+      showToast(t.poster_portrait_set);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Bild konnte nicht geladen werden");
+      showToast(err instanceof Error ? err.message : t.map_load_error);
     }
   }
 
@@ -41,7 +43,6 @@ export function WantedPosters() {
   return (
     <div style={{ padding: "0 14px" }}>
       <div className="crew-panel">
-        {/* Crew- & Schiffsbogen */}
         <div className="crew-sheet">
           <div className="crew-flag">
             {jollyUrl ? (
@@ -50,77 +51,74 @@ export function WantedPosters() {
               <div className="jolly-empty">☠</div>
             )}
             <label className="gla-btn crew-upload">
-              Flagge laden
+              {t.crew_flag_load}
               <input type="file" accept="image/*" onChange={onJollyUpload} style={{ display: "none" }} />
             </label>
             {crew.jollyRoger && (
-              <button className="gla-btn" onClick={() => setCrew(c => ({ ...c, jollyRoger: null }))}>Entfernen</button>
+              <button className="gla-btn" onClick={() => setCrew(c => ({ ...c, jollyRoger: null }))}>{t.crew_flag_remove}</button>
             )}
           </div>
           <div className="crew-info">
             <label className="crew-field">
-              <span className="field-label">Name der Bande</span>
-              <input className="gla-input crew-name" value={crew.name} placeholder="z. B. Strohhut-Piraten"
+              <span className="field-label">{t.crew_band_name}</span>
+              <input className="gla-input crew-name" value={crew.name}
                 onChange={e => setCrew(c => ({ ...c, name: e.target.value }))} />
             </label>
             <label className="crew-field">
-              <span className="field-label">Schiff</span>
-              <input className="gla-input" value={crew.schiffName} placeholder="z. B. Thousand Sunny"
+              <span className="field-label">{t.crew_ship}</span>
+              <input className="gla-input" value={crew.schiffName}
                 onChange={e => setCrew(c => ({ ...c, schiffName: e.target.value }))} />
             </label>
             <label className="crew-field">
-              <span className="field-label">Schiffsbeschreibung</span>
+              <span className="field-label">{t.crew_ship_desc}</span>
               <textarea className="gla-textarea" value={crew.schiffBeschreibung}
-                placeholder="Bauart, Besonderheiten, Bewaffnung…"
                 onChange={e => setCrew(c => ({ ...c, schiffBeschreibung: e.target.value }))} />
             </label>
             <label className="crew-field">
-              <span className="field-label">Flotte / Zugehörigkeit</span>
-              <input className="gla-input" value={crew.flotte} placeholder="optional — z. B. Große Flotte"
+              <span className="field-label">{t.crew_fleet}</span>
+              <input className="gla-input" value={crew.flotte}
                 onChange={e => setCrew(c => ({ ...c, flotte: e.target.value }))} />
             </label>
           </div>
         </div>
 
-        {/* Gesamtkopfgeld */}
         <div className="bounty-total">
-          Gesamtkopfgeld der Bande:
+          {t.crew_bounty_total}
           <span className="bounty-sum">
             <span className="berry-sym">฿</span>{formatBerry(gesamtKopfgeld)}
           </span>
         </div>
 
-        {/* WANTED-Steckbriefe */}
         <div className="wanted-grid">
           {chars.map(c => {
             const portraitUrl = storage.bildUrl(c.portrait);
             return (
               <div className="wanted" key={c.id}>
-                <div className="wanted-head">WANTED</div>
-                <div className="wanted-sub">DEAD OR ALIVE</div>
+                <div className="wanted-head">{t.poster_wanted}</div>
+                <div className="wanted-sub">{t.poster_dead_or_alive}</div>
                 <div className="wanted-photo">
                   {portraitUrl ? (
                     <img src={portraitUrl} alt={c.name} />
                   ) : (
                     <div className="wanted-photo-empty">?</div>
                   )}
-                  <label className="wanted-upload" title="Porträt laden">
+                  <label className="wanted-upload" title={t.poster_load_portrait}>
                     📷
                     <input type="file" accept="image/*" style={{ display: "none" }}
                       onChange={e => onPortraitUpload(e, c.id)} />
                   </label>
                 </div>
-                <input className="wanted-name" value={c.name} placeholder="Name" aria-label="Name"
+                <input className="wanted-name" value={c.name} placeholder={t.name} aria-label={t.name}
                   onChange={e => setChars(cs => cs.map(x => (x.id === c.id ? { ...x, name: e.target.value } : x)))} />
-                <input className="wanted-epitheton" value={c.epitheton || ""} placeholder="„Beiname“" aria-label="Beiname"
+                <input className="wanted-epitheton" value={c.epitheton || ""} aria-label={t.name}
                   onChange={e => setChars(cs => cs.map(x => (x.id === c.id ? { ...x, epitheton: e.target.value } : x)))} />
                 <div className="wanted-bounty">
                   <span className="berry-sym">฿</span>
-                  <NumberInput className="wanted-bounty-input" min={0} value={c.kopfgeld || 0} ariaLabel="Kopfgeld"
+                  <NumberInput className="wanted-bounty-input" min={0} value={c.kopfgeld || 0} ariaLabel={t.char_berries}
                     onChange={v => setChars(cs => cs.map(x => (x.id === c.id ? { ...x, kopfgeld: v } : x)))} />
                 </div>
                 <div className="wanted-bounty-fmt">{formatBerry(c.kopfgeld)} Berry</div>
-                <div className="wanted-marine">☠ MARINE ☠</div>
+                <div className="wanted-marine">{t.poster_footer}</div>
               </div>
             );
           })}
@@ -128,7 +126,7 @@ export function WantedPosters() {
 
         <div className="save-bar" style={{ marginTop: 14 }}>
           <button className="gla-btn" onClick={async () => { await saveNow("crew"); await saveNow("chars"); }}>
-            Steckbriefe &amp; Crew speichern
+            {t.crew_save}
           </button>
         </div>
       </div>

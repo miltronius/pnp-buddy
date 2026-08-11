@@ -1,16 +1,16 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /* ============================================================
-   Supabase-Client als Singleton.
-   Sind die Umgebungsvariablen nicht gesetzt, bleibt der Client
-   null — die App läuft dann im lokalen Modus weiter, damit man
-   ohne Projekt-Zugangsdaten sofort arbeiten kann.
+   Supabase client as a singleton.
+   If the environment variables are not set, the client stays
+   null — the app then continues in local mode so you can work
+   immediately without project credentials.
    ============================================================ */
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-/** true, sobald URL und Publishable Key vorhanden sind. */
+/** true once URL and Publishable Key are present. */
 export const isCloudConfigured = Boolean(url && key);
 
 export const supabase: SupabaseClient | null = isCloudConfigured
@@ -23,16 +23,16 @@ export const supabase: SupabaseClient | null = isCloudConfigured
     })
   : null;
 
-/** Client holen oder verständlich scheitern. */
+/** Get the client or throw a clear error. */
 export function requireSupabase(): SupabaseClient {
   if (!supabase) {
     throw new Error(
-      "Supabase ist nicht konfiguriert — VITE_SUPABASE_URL und " +
-      "VITE_SUPABASE_PUBLISHABLE_KEY in .env.local eintragen.",
+      "Supabase is not configured — add VITE_SUPABASE_URL and " +
+      "VITE_SUPABASE_PUBLISHABLE_KEY to .env.local.",
     );
   }
   return supabase;
 }
 
-/** Name des Storage-Buckets für Porträts, Flaggen und Kartenbilder. */
-export const IMAGE_BUCKET = "bilder";
+/** Name of the Storage bucket for portraits, flags and map images. */
+export const IMAGE_BUCKET = "images";

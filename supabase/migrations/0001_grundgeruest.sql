@@ -1,93 +1,94 @@
 -- ============================================================
--- Grand Line Assistant — Grundgerüst
--- Im Supabase-Dashboard unter SQL Editor ausführen (oder per
--- `supabase db push`, wenn die CLI eingerichtet ist).
+-- Grand Line Assistant — Base Schema
+-- Run in the Supabase Dashboard under SQL Editor, or via
+-- `supabase db push` if the CLI is configured.
 --
--- Grundprinzip: eine Kampagne bündelt alles. Jeder Datensatz
--- gehört einem Benutzer (owner). RLS stellt sicher, dass niemand
--- fremde Daten sieht.
+-- Core principle: a campaign bundles everything. Every row
+-- belongs to one user (owner). RLS ensures no one can access
+-- another user's data.
 -- ============================================================
 
--- ── Kampagnen ────────────────────────────────────────────────
+-- ── Campaigns ────────────────────────────────────────────────
 create table if not exists campaigns (
   id          uuid primary key default gen_random_uuid(),
   owner       uuid not null references auth.users (id) on delete cascade,
-  name        text not null default 'Neue Kampagne',
+  name        text not null default 'New Campaign',
   created_at  timestamptz not null default now()
 );
 create index if not exists campaigns_owner_idx on campaigns (owner);
 
--- ── Charaktere ───────────────────────────────────────────────
--- Kernfelder als Spalten, der Rest (Waffen, Skills, Frucht, Inventar) als jsonb.
+-- ── Characters ───────────────────────────────────────────────
+-- Core fields as columns; the rest (weapons, skills, devil fruit,
+-- inventory) stored as jsonb.
 --
--- Hinweis zu `schaden`: Das ist KEIN Zahlenwert, sondern der Schadens-
--- ausdruck des Charakters ("W6 + W6", "2W6+3"). Deshalb text, nicht int.
+-- Note on `damage`: this is NOT a number but a damage expression
+-- ("W6 + W6", "2W6+3"). Hence text, not int.
 create table if not exists characters (
   id            uuid primary key default gen_random_uuid(),
   owner         uuid not null references auth.users (id) on delete cascade,
   campaign_id   uuid references campaigns (id) on delete cascade,
   name          text not null default '',
-  epitheton     text default '',
-  stufe         int  not null default 0,
-  leben         int  not null default 14,
-  schaden       text not null default 'W6 + W6',
+  epithet       text default '',
+  level         int  not null default 0,
+  hp            int  not null default 14,
+  damage        text not null default 'W6 + W6',
   berries       bigint not null default 0,
-  kopfgeld      bigint not null default 0,
-  aussehen      text default '',
-  ziel          text default '',
-  spezial       text default '',
-  eigenschaften text default '',
-  attribute     jsonb not null default '{}'::jsonb,
-  hab_und_gut   jsonb not null default '[]'::jsonb,
-  waffen        jsonb not null default '[]'::jsonb,
+  bounty        bigint not null default 0,
+  appearance    text default '',
+  goal          text default '',
+  special       text default '',
+  traits        text default '',
+  attributes    jsonb not null default '{}'::jsonb,
+  inventory     jsonb not null default '[]'::jsonb,
+  weapons       jsonb not null default '[]'::jsonb,
   skills        jsonb not null default '[]'::jsonb,
-  teufelsfrucht jsonb not null default '{"name":"","typ":"","raenge":[]}'::jsonb,
-  portrait_path text,                       -- Pfad im Storage, nicht das Bild selbst
-  sortierung    int not null default 0,     -- Reihenfolge der Chips im Bogen
+  devil_fruit   jsonb not null default '{"name":"","typ":"","raenge":[]}'::jsonb,
+  portrait_path text,                       -- storage path, not the image itself
+  sort_order    int not null default 0,     -- order of chips on the character sheet
   updated_at    timestamptz not null default now()
 );
 create index if not exists characters_owner_idx on characters (owner);
 create index if not exists characters_campaign_idx on characters (campaign_id);
 
--- ── Crew / Schiff (genau eine pro Kampagne) ──────────────────
+-- ── Crew / Ship (exactly one per campaign) ───────────────────
 create table if not exists crews (
-  id                  uuid primary key default gen_random_uuid(),
-  owner               uuid not null references auth.users (id) on delete cascade,
-  campaign_id         uuid not null references campaigns (id) on delete cascade,
-  name                text default '',
-  jolly_roger_path    text,
-  schiff_name         text default '',
-  schiff_beschreibung text default '',
-  flotte              text default '',
-  updated_at          timestamptz not null default now(),
+  id                uuid primary key default gen_random_uuid(),
+  owner             uuid not null references auth.users (id) on delete cascade,
+  campaign_id       uuid not null references campaigns (id) on delete cascade,
+  name              text default '',
+  jolly_roger_path  text,
+  ship_name         text default '',
+  ship_description  text default '',
+  fleet             text default '',
+  updated_at        timestamptz not null default now(),
   constraint crews_campaign_unique unique (campaign_id)
 );
 
--- ── Editor-Zustände als jsonb (Karte, Zeichnung, Schauplatz) ─
+-- ── Editor states as jsonb (map, drawing, scene) ─────────────
 create table if not exists maps (
   id          uuid primary key default gen_random_uuid(),
   owner       uuid not null references auth.users (id) on delete cascade,
   campaign_id uuid not null references campaigns (id) on delete cascade,
   kind        text not null check (kind in ('tracker', 'drawing', 'detail')),
   data        jsonb not null default '{}'::jsonb,
-  bg_path     text,                -- großes Hintergrundbild im Storage, nicht in der Zeile
+  bg_path     text,                -- large background image in storage, not inline
   updated_at  timestamptz not null default now(),
   constraint maps_campaign_kind_unique unique (campaign_id, kind)
 );
 
--- ── Logbuch ──────────────────────────────────────────────────
+-- ── Logbook ──────────────────────────────────────────────────
 create table if not exists logbooks (
   id          uuid primary key default gen_random_uuid(),
   owner       uuid not null references auth.users (id) on delete cascade,
   campaign_id uuid not null references campaigns (id) on delete cascade,
-  notizen     text default '',
+  notes       text default '',
   quests      jsonb not null default '[]'::jsonb,
   updated_at  timestamptz not null default now(),
   constraint logbooks_campaign_unique unique (campaign_id)
 );
 
 -- ============================================================
--- updated_at automatisch pflegen
+-- Auto-update updated_at
 -- ============================================================
 create or replace function touch_updated_at()
 returns trigger language plpgsql as $$
@@ -114,8 +115,8 @@ create trigger t_logbooks before update on logbooks
 
 -- ============================================================
 -- Row Level Security
--- Ohne RLS gewährt der öffentliche Key vollen Tabellenzugriff.
--- Mit RLS aber ohne Policy liefert jede Abfrage leer zurück.
+-- Without RLS the public key grants full table access.
+-- With RLS but no policy every query returns empty.
 -- ============================================================
 alter table campaigns  enable row level security;
 alter table characters enable row level security;
@@ -123,83 +124,82 @@ alter table crews      enable row level security;
 alter table maps       enable row level security;
 alter table logbooks   enable row level security;
 
--- Kampagnen
-drop policy if exists "Eigene Kampagnen lesen"   on campaigns;
-drop policy if exists "Eigene Kampagnen anlegen" on campaigns;
-drop policy if exists "Eigene Kampagnen ändern"  on campaigns;
-drop policy if exists "Eigene Kampagnen löschen" on campaigns;
-create policy "Eigene Kampagnen lesen"   on campaigns for select using (auth.uid() = owner);
-create policy "Eigene Kampagnen anlegen" on campaigns for insert with check (auth.uid() = owner);
-create policy "Eigene Kampagnen ändern"  on campaigns for update using (auth.uid() = owner) with check (auth.uid() = owner);
-create policy "Eigene Kampagnen löschen" on campaigns for delete using (auth.uid() = owner);
+-- Campaigns
+drop policy if exists "Read own campaigns"   on campaigns;
+drop policy if exists "Create own campaigns" on campaigns;
+drop policy if exists "Update own campaigns" on campaigns;
+drop policy if exists "Delete own campaigns" on campaigns;
+create policy "Read own campaigns"   on campaigns for select using (auth.uid() = owner);
+create policy "Create own campaigns" on campaigns for insert with check (auth.uid() = owner);
+create policy "Update own campaigns" on campaigns for update using (auth.uid() = owner) with check (auth.uid() = owner);
+create policy "Delete own campaigns" on campaigns for delete using (auth.uid() = owner);
 
--- Charaktere
-drop policy if exists "Eigene Charaktere lesen"   on characters;
-drop policy if exists "Eigene Charaktere anlegen" on characters;
-drop policy if exists "Eigene Charaktere ändern"  on characters;
-drop policy if exists "Eigene Charaktere löschen" on characters;
-create policy "Eigene Charaktere lesen"   on characters for select using (auth.uid() = owner);
-create policy "Eigene Charaktere anlegen" on characters for insert with check (auth.uid() = owner);
-create policy "Eigene Charaktere ändern"  on characters for update using (auth.uid() = owner) with check (auth.uid() = owner);
-create policy "Eigene Charaktere löschen" on characters for delete using (auth.uid() = owner);
+-- Characters
+drop policy if exists "Read own characters"   on characters;
+drop policy if exists "Create own characters" on characters;
+drop policy if exists "Update own characters" on characters;
+drop policy if exists "Delete own characters" on characters;
+create policy "Read own characters"   on characters for select using (auth.uid() = owner);
+create policy "Create own characters" on characters for insert with check (auth.uid() = owner);
+create policy "Update own characters" on characters for update using (auth.uid() = owner) with check (auth.uid() = owner);
+create policy "Delete own characters" on characters for delete using (auth.uid() = owner);
 
 -- Crew
-drop policy if exists "Eigene Crew lesen"   on crews;
-drop policy if exists "Eigene Crew anlegen" on crews;
-drop policy if exists "Eigene Crew ändern"  on crews;
-drop policy if exists "Eigene Crew löschen" on crews;
-create policy "Eigene Crew lesen"   on crews for select using (auth.uid() = owner);
-create policy "Eigene Crew anlegen" on crews for insert with check (auth.uid() = owner);
-create policy "Eigene Crew ändern"  on crews for update using (auth.uid() = owner) with check (auth.uid() = owner);
-create policy "Eigene Crew löschen" on crews for delete using (auth.uid() = owner);
+drop policy if exists "Read own crew"   on crews;
+drop policy if exists "Create own crew" on crews;
+drop policy if exists "Update own crew" on crews;
+drop policy if exists "Delete own crew" on crews;
+create policy "Read own crew"   on crews for select using (auth.uid() = owner);
+create policy "Create own crew" on crews for insert with check (auth.uid() = owner);
+create policy "Update own crew" on crews for update using (auth.uid() = owner) with check (auth.uid() = owner);
+create policy "Delete own crew" on crews for delete using (auth.uid() = owner);
 
--- Karten / Zeichnungen / Schauplätze
-drop policy if exists "Eigene Karten lesen"   on maps;
-drop policy if exists "Eigene Karten anlegen" on maps;
-drop policy if exists "Eigene Karten ändern"  on maps;
-drop policy if exists "Eigene Karten löschen" on maps;
-create policy "Eigene Karten lesen"   on maps for select using (auth.uid() = owner);
-create policy "Eigene Karten anlegen" on maps for insert with check (auth.uid() = owner);
-create policy "Eigene Karten ändern"  on maps for update using (auth.uid() = owner) with check (auth.uid() = owner);
-create policy "Eigene Karten löschen" on maps for delete using (auth.uid() = owner);
+-- Maps / Drawings / Scenes
+drop policy if exists "Read own maps"   on maps;
+drop policy if exists "Create own maps" on maps;
+drop policy if exists "Update own maps" on maps;
+drop policy if exists "Delete own maps" on maps;
+create policy "Read own maps"   on maps for select using (auth.uid() = owner);
+create policy "Create own maps" on maps for insert with check (auth.uid() = owner);
+create policy "Update own maps" on maps for update using (auth.uid() = owner) with check (auth.uid() = owner);
+create policy "Delete own maps" on maps for delete using (auth.uid() = owner);
 
--- Logbuch
-drop policy if exists "Eigenes Logbuch lesen"   on logbooks;
-drop policy if exists "Eigenes Logbuch anlegen" on logbooks;
-drop policy if exists "Eigenes Logbuch ändern"  on logbooks;
-drop policy if exists "Eigenes Logbuch löschen" on logbooks;
-create policy "Eigenes Logbuch lesen"   on logbooks for select using (auth.uid() = owner);
-create policy "Eigenes Logbuch anlegen" on logbooks for insert with check (auth.uid() = owner);
-create policy "Eigenes Logbuch ändern"  on logbooks for update using (auth.uid() = owner) with check (auth.uid() = owner);
-create policy "Eigenes Logbuch löschen" on logbooks for delete using (auth.uid() = owner);
+-- Logbook
+drop policy if exists "Read own logbook"   on logbooks;
+drop policy if exists "Create own logbook" on logbooks;
+drop policy if exists "Update own logbook" on logbooks;
+drop policy if exists "Delete own logbook" on logbooks;
+create policy "Read own logbook"   on logbooks for select using (auth.uid() = owner);
+create policy "Create own logbook" on logbooks for insert with check (auth.uid() = owner);
+create policy "Update own logbook" on logbooks for update using (auth.uid() = owner) with check (auth.uid() = owner);
+create policy "Delete own logbook" on logbooks for delete using (auth.uid() = owner);
 
 -- ============================================================
--- Storage: Bucket "bilder" für Porträts, Jolly Roger, Kartenbilder.
--- Der erste Pfadabschnitt ist die User-ID — daran hängen die Policies.
--- Lesen ist öffentlich (die Pfade sind zufällige uuids), Schreiben
--- darf nur, wem der Ordner gehört.
+-- Storage: bucket "images" for portraits, jolly rogers, map backgrounds.
+-- The first path segment is the user ID — policies are scoped to it.
+-- Read is public (paths are random UUIDs); write is owner-only.
 -- ============================================================
 insert into storage.buckets (id, name, public)
-values ('bilder', 'bilder', true)
+values ('images', 'images', true)
 on conflict (id) do nothing;
 
-drop policy if exists "Bilder öffentlich lesen"    on storage.objects;
-drop policy if exists "Eigene Bilder hochladen"    on storage.objects;
-drop policy if exists "Eigene Bilder überschreiben" on storage.objects;
-drop policy if exists "Eigene Bilder löschen"      on storage.objects;
+drop policy if exists "Public image read"    on storage.objects;
+drop policy if exists "Upload own images"    on storage.objects;
+drop policy if exists "Update own images"    on storage.objects;
+drop policy if exists "Delete own images"    on storage.objects;
 
-create policy "Bilder öffentlich lesen"
+create policy "Public image read"
   on storage.objects for select
-  using (bucket_id = 'bilder');
+  using (bucket_id = 'images');
 
-create policy "Eigene Bilder hochladen"
+create policy "Upload own images"
   on storage.objects for insert
-  with check (bucket_id = 'bilder' and (storage.foldername(name))[1] = auth.uid()::text);
+  with check (bucket_id = 'images' and (storage.foldername(name))[1] = auth.uid()::text);
 
-create policy "Eigene Bilder überschreiben"
+create policy "Update own images"
   on storage.objects for update
-  using (bucket_id = 'bilder' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'images' and (storage.foldername(name))[1] = auth.uid()::text);
 
-create policy "Eigene Bilder löschen"
+create policy "Delete own images"
   on storage.objects for delete
-  using (bucket_id = 'bilder' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'images' and (storage.foldername(name))[1] = auth.uid()::text);

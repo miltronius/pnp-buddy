@@ -147,3 +147,4 @@ vite.config.ts.timestamp-*
 
 # TypeScript incremental build info
 *.tsbuildinfo
+.claude/worktrees/

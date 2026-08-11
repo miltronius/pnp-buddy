@@ -10,8 +10,8 @@ import {
   newLogbook, newDrawing,
 } from "../lib/game";
 import type {
-  Charakter, Crew, KartenZustand, LogbuchZustand,
-  SchauplatzZustand, ZeichnungZustand,
+  Character, Crew, MapState, LogbookState,
+  SceneState, DrawingState,
 } from "../types";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -21,24 +21,24 @@ export interface CampaignValue {
   loading: boolean;
   loadError: string | null;
 
-  chars: Charakter[];
-  setChars: Dispatch<SetStateAction<Charakter[]>>;
+  chars: Character[];
+  setChars: Dispatch<SetStateAction<Character[]>>;
   activeId: string | null;
   setActiveId: (id: string) => void;
-  active: Charakter;
+  active: Character;
 
   crew: Crew;
   setCrew: Dispatch<SetStateAction<Crew>>;
-  map: KartenZustand;
-  setMap: Dispatch<SetStateAction<KartenZustand>>;
-  drawing: ZeichnungZustand;
-  setDrawing: Dispatch<SetStateAction<ZeichnungZustand>>;
-  scene: SchauplatzZustand;
-  setScene: Dispatch<SetStateAction<SchauplatzZustand>>;
-  logbook: LogbuchZustand;
-  setLogbook: Dispatch<SetStateAction<LogbuchZustand>>;
+  map: MapState;
+  setMap: Dispatch<SetStateAction<MapState>>;
+  drawing: DrawingState;
+  setDrawing: Dispatch<SetStateAction<DrawingState>>;
+  scene: SceneState;
+  setScene: Dispatch<SetStateAction<SceneState>>;
+  logbook: LogbookState;
+  setLogbook: Dispatch<SetStateAction<LogbookState>>;
 
-  patch: (p: Partial<Charakter>) => void;
+  patch: (p: Partial<Character>) => void;
   addCharacter: () => void;
   removeCharacter: () => void;
 
@@ -72,13 +72,13 @@ export function CampaignProvider({ userId, children }: { userId: string | null; 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [chars, setChars] = useState<Charakter[]>(() => [newCharacter()]);
+  const [chars, setChars] = useState<Character[]>(() => [newCharacter()]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [crew, setCrew] = useState<Crew>(newCrew);
-  const [map, setMap] = useState<KartenZustand>(newMap);
-  const [drawing, setDrawing] = useState<ZeichnungZustand>(newDrawing);
-  const [scene, setScene] = useState<SchauplatzZustand>(newScene);
-  const [logbook, setLogbook] = useState<LogbuchZustand>(newLogbook);
+  const [map, setMap] = useState<MapState>(newMap);
+  const [drawing, setDrawing] = useState<DrawingState>(newDrawing);
+  const [scene, setScene] = useState<SceneState>(newScene);
+  const [logbook, setLogbook] = useState<LogbookState>(newLogbook);
 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -100,17 +100,17 @@ export function CampaignProvider({ userId, children }: { userId: string | null; 
     let active = true;
     setLoading(true);
     setLoadError(null);
-    storage.ladeAlles()
+    storage.loadAll()
       .then(data => {
         if (!active) return;
         const loaded = data.chars.length ? data.chars : [newCharacter()];
         setChars(loaded);
         setActiveId(loaded[0].id);
         setCrew(data.crew);
-        setMap(data.karte);
-        setDrawing(data.zeichnung);
-        setScene(data.schauplatz);
-        setLogbook(data.logbuch);
+        setMap(data.map);
+        setDrawing(data.drawing);
+        setScene(data.scene);
+        setLogbook(data.logbook);
         setLoading(false);
       })
       .catch(e => {
@@ -143,21 +143,21 @@ export function CampaignProvider({ userId, children }: { userId: string | null; 
     doSave(work).catch(() => {});
   }, [doSave]);
 
-  useAutosave(chars, ready, w => silentSave(() => storage.speichereCharaktere(w)));
-  useAutosave(crew, ready, w => silentSave(() => storage.speichereCrew(w)));
-  useAutosave(map, ready, w => silentSave(() => storage.speichereKarte(w)));
-  useAutosave(drawing, ready, w => silentSave(() => storage.speichereZeichnung(w)));
-  useAutosave(scene, ready, w => silentSave(() => storage.speichereSchauplatz(w)));
-  useAutosave(logbook, ready, w => silentSave(() => storage.speichereLogbuch(w)));
+  useAutosave(chars, ready, w => silentSave(() => storage.saveCharacters(w)));
+  useAutosave(crew, ready, w => silentSave(() => storage.saveCrew(w)));
+  useAutosave(map, ready, w => silentSave(() => storage.saveMap(w)));
+  useAutosave(drawing, ready, w => silentSave(() => storage.saveDrawing(w)));
+  useAutosave(scene, ready, w => silentSave(() => storage.saveScene(w)));
+  useAutosave(logbook, ready, w => silentSave(() => storage.saveLogbook(w)));
 
   const saveNow = useCallback(async (area: Area) => {
     const tasks: Record<Exclude<Area, "all">, () => Promise<void>> = {
-      chars: () => storage.speichereCharaktere(chars),
-      crew: () => storage.speichereCrew(crew),
-      map: () => storage.speichereKarte(map),
-      drawing: () => storage.speichereZeichnung(drawing),
-      scene: () => storage.speichereSchauplatz(scene),
-      logbook: () => storage.speichereLogbuch(logbook),
+      chars: () => storage.saveCharacters(chars),
+      crew: () => storage.saveCrew(crew),
+      map: () => storage.saveMap(map),
+      drawing: () => storage.saveDrawing(drawing),
+      scene: () => storage.saveScene(scene),
+      logbook: () => storage.saveLogbook(logbook),
     };
     try {
       if (area === "all") {
@@ -178,7 +178,7 @@ export function CampaignProvider({ userId, children }: { userId: string | null; 
     [chars, activeId],
   );
 
-  const patch = useCallback((p: Partial<Charakter>) => {
+  const patch = useCallback((p: Partial<Character>) => {
     setChars(cs => cs.map(c => (c.id === (activeId ?? cs[0]?.id) ? { ...c, ...p } : c)));
   }, [activeId]);
 
@@ -194,7 +194,7 @@ export function CampaignProvider({ userId, children }: { userId: string | null; 
     const rest = chars.filter(c => c.id !== id);
     setChars(rest);
     setActiveId(rest[0].id);
-    silentSave(() => storage.loescheCharakter(id));
+    silentSave(() => storage.deleteCharacter(id));
   }, [chars, activeId, storage, silentSave]);
 
   const value: CampaignValue = {

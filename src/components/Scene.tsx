@@ -3,14 +3,12 @@ import type { BodenArt, DetailObjekt } from "../types";
 import { newId } from "../lib/game";
 import { useCampaign } from "../state/CampaignContext";
 import { useSession } from "../state/SessionContext";
+import { useT } from "../i18n";
 
 const DET_FLOORS: Record<BodenArt, string> = {
   stein: "#8a857c", holz: "#a9793f", gras: "#5a9e52", wasser: "#2b6d8f", sand: "#e3d29a",
 };
-const DET_FLOOR_LABELS: Record<BodenArt, string> = {
-  stein: "Stein", holz: "Holz", gras: "Gras", wasser: "Wasser", sand: "Sand",
-};
-const DET_GRID = 32;   // Kampfraster-Spalten
+const DET_GRID = 32;
 const BOEDEN = Object.keys(DET_FLOORS) as BodenArt[];
 
 type Werkzeug = "rect" | "circle" | "wall" | "door" | "label" | "select";
@@ -19,6 +17,12 @@ interface Entwurf { tool: Werkzeug; x1: number; y1: number; x2: number; y2: numb
 export function Scene() {
   const { scene, setScene, setMap, storage, saveNow, showToast } = useCampaign();
   const { setTab } = useSession();
+  const t = useT();
+
+  const floorLabels: Record<BodenArt, string> = {
+    stein: t.scene_floor_stone, holz: t.scene_floor_wood,
+    gras: t.scene_floor_grass, wasser: t.scene_floor_water, sand: t.scene_floor_sand,
+  };
 
   const [tool, setTool] = useState<Werkzeug>("rect");
   const [floor, setFloor] = useState<BodenArt>("stein");
@@ -33,7 +37,6 @@ export function Scene() {
   const setObjects = (f: (os: DetailObjekt[]) => DetailObjekt[]) =>
     setScene(s => ({ ...s, objects: f(s.objects) }));
 
-  /* ---- Mausposition → Prozentkoordinaten im SVG (optional gerastert) ---- */
   function punkt(e: ReactPointerEvent<SVGSVGElement>, rastern: boolean) {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
@@ -50,7 +53,6 @@ export function Scene() {
     return { x, y };
   }
 
-  /** Von oben nach unten suchen — zuletzt Gezeichnetes zuerst. */
   function objektBei(px: number, py: number): DetailObjekt | null {
     for (let i = objects.length - 1; i >= 0; i--) {
       const o = objects[i];
@@ -80,7 +82,6 @@ export function Scene() {
     if (tool === "select") {
       const p = punkt(e, false);
       const treffer = objektBei(p.x, p.y);
-      // Wände lassen sich nicht greifen — sie haben keinen Ankerpunkt.
       if (treffer && treffer.type !== "wall") {
         try { svg.setPointerCapture(e.pointerId); } catch { /* egal */ }
         const ref = treffer.type === "circle" ? { x: treffer.cx, y: treffer.cy } : { x: treffer.x, y: treffer.y };
@@ -88,7 +89,6 @@ export function Scene() {
       }
       return;
     }
-    // Zeichnen (rect/circle/wall/door): Startpunkt merken
     try { svg.setPointerCapture(e.pointerId); } catch { /* egal */ }
     const p = punkt(e, true);
     draftRef.current = { tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y };
@@ -96,7 +96,6 @@ export function Scene() {
   }
 
   function onPointerMove(e: ReactPointerEvent<SVGSVGElement>) {
-    // Verschieben
     const d = dragRef.current;
     if (d && d.pointerId === e.pointerId) {
       const p = punkt(e, false);
@@ -108,7 +107,6 @@ export function Scene() {
       }));
       return;
     }
-    // Zeichnen: Endpunkt aktualisieren
     const entwurf = draftRef.current;
     if (!entwurf) return;
     const p = punkt(e, true);
@@ -126,21 +124,21 @@ export function Scene() {
     if (!entwurf) return;
     draftRef.current = null;
     setDraft(null);
-    const { tool: t, x1, y1, x2, y2 } = entwurf;
+    const { tool: tl, x1, y1, x2, y2 } = entwurf;
     const id = newId("o");
-    if (t === "rect") {
+    if (tl === "rect") {
       const x = Math.min(x1, x2), y = Math.min(y1, y2);
       const w = Math.abs(x2 - x1), h = Math.abs(y2 - y1);
       if (w < 1 || h < 1) return;
       setObjects(os => [...os, { id, type: "rect", x, y, w, h, terr: floor }]);
-    } else if (t === "circle") {
+    } else if (tl === "circle") {
       const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
       const rx = Math.abs(x2 - x1) / 2, ry = Math.abs(y2 - y1) / 2;
       if (rx < 0.5 || ry < 0.5) return;
       setObjects(os => [...os, { id, type: "circle", cx, cy, rx, ry, terr: floor }]);
-    } else if (t === "wall" || t === "door") {
+    } else if (tl === "wall" || tl === "door") {
       if (Math.hypot(x2 - x1, y2 - y1) < 1) return;
-      setObjects(os => [...os, { id, type: "wall", x1, y1, x2, y2, door: t === "door" }]);
+      setObjects(os => [...os, { id, type: "wall", x1, y1, x2, y2, door: tl === "door" }]);
     }
   }
 
@@ -153,14 +151,11 @@ export function Scene() {
     }
   }
 
-  /** Detailkarte als Bild in den Figuren-Tracker übernehmen. */
   function alsKarteUebernehmen() {
     const svg = svgRef.current;
     if (!svg) return;
     const clone = svg.cloneNode(true) as SVGSVGElement;
-    clone.querySelectorAll(".det-draft").forEach(n => n.remove());   // Vorschau raus
-    // Beim Rastern gelten die Seiten-Stylesheets nicht — deshalb feste Maße
-    // und die Beschriftungs-Regel direkt ins SVG.
+    clone.querySelectorAll(".det-draft").forEach(n => n.remove());
     clone.setAttribute("width", "1200");
     clone.setAttribute("height", "800");
     clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
@@ -182,21 +177,30 @@ export function Scene() {
         const wert = await storage.bildSpeichern(cv.toDataURL("image/jpeg", 0.88));
         setMap(k => ({ ...k, bg: wert }));
         setTab("karte");
-        showToast("Detailkarte als Karte übernommen ⚓");
+        showToast(t.scene_taken);
       } catch (err) {
-        showToast(err instanceof Error ? err.message : "Übernahme fehlgeschlagen");
+        showToast(err instanceof Error ? err.message : t.scene_failed);
       }
     };
-    img.onerror = () => showToast("Übernahme fehlgeschlagen");
+    img.onerror = () => showToast(t.scene_failed);
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
   }
+
+  const modeHint =
+    tool === "select" ? t.scene_hint_select
+    : tool === "label" ? t.scene_hint_label
+    : tool === "wall" ? t.scene_hint_wall
+    : tool === "door" ? t.scene_hint_door
+    : tool === "circle"
+      ? t.scene_hint_round.replace('[0]', floorLabels[floor])
+      : t.scene_hint_rect.replace('[0]', floorLabels[floor]);
 
   return (
     <div style={{ padding: "0 14px" }}>
       <div className="det-panel">
         <div className="det-tools">
           <div className="tool-group">
-            <span className="tool-label">Werkzeug:</span>
+            <span className="tool-label">{t.scene_tool}</span>
             <button className={`det-tbtn ${tool === "rect" ? "on" : ""}`} onClick={() => setTool("rect")} title="Rechteck-Raum">▭ Raum</button>
             <button className={`det-tbtn ${tool === "circle" ? "on" : ""}`} onClick={() => setTool("circle")} title="Runder Raum">◯ Rund</button>
             <button className={`det-tbtn ${tool === "wall" ? "on" : ""}`} onClick={() => setTool("wall")} title="Wand ziehen">▬ Wand</button>
@@ -206,20 +210,20 @@ export function Scene() {
           </div>
 
           <div className="tool-group">
-            <span className="tool-label">Boden:</span>
+            <span className="tool-label">{t.scene_floor}</span>
             {BOEDEN.map(f => (
               <button key={f} className={`terr-btn ${floor === f ? "on" : ""}`}
                 style={{ "--terr": DET_FLOORS[f] } as CSSProperties} onClick={() => setFloor(f)}>
-                <span className="terr-swatch" />{DET_FLOOR_LABELS[f]}
+                <span className="terr-swatch" />{floorLabels[f]}
               </button>
             ))}
             <span className="map-sep" />
-            <span className="tool-label" style={{ minWidth: "auto" }}>Grund:</span>
-            <select className="det-bg-sel" value={scene.bg} aria-label="Grundboden"
+            <span className="tool-label" style={{ minWidth: "auto" }}>{t.scene_bg}</span>
+            <select className="det-bg-sel" value={scene.bg} aria-label={t.scene_bg}
               onChange={e => setScene(s => ({ ...s, bg: e.target.value as BodenArt }))}>
-              {BOEDEN.map(f => <option key={f} value={f}>{DET_FLOOR_LABELS[f]}</option>)}
+              {BOEDEN.map(f => <option key={f} value={f}>{floorLabels[f]}</option>)}
             </select>
-            <button className={`det-tbtn ${snap ? "on" : ""}`} onClick={() => setSnap(v => !v)} title="Am Raster fangen">⊞ Raster-Fang</button>
+            <button className={`det-tbtn ${snap ? "on" : ""}`} onClick={() => setSnap(v => !v)} title={t.scene_grid_snap}>{t.scene_grid_snap}</button>
           </div>
         </div>
 
@@ -236,9 +240,7 @@ export function Scene() {
             onPointerCancel={onPointerUp}
             style={{ touchAction: "none", cursor: tool === "select" ? "grab" : "crosshair" }}
           >
-            {/* Grundboden */}
             <rect x="0" y="0" width="100" height="66" fill={DET_FLOORS[scene.bg]} />
-            {/* Kampfraster */}
             <g className="det-grid-lines">
               {Array.from({ length: DET_GRID + 1 }).map((_, i) => (
                 <line key={"v" + i} x1={(i * 100) / DET_GRID} y1="0" x2={(i * 100) / DET_GRID} y2="66"
@@ -250,7 +252,6 @@ export function Scene() {
               ))}
             </g>
 
-            {/* Objekte */}
             {objects.map(o => {
               if (o.type === "rect") return (
                 <rect key={o.id} x={o.x} y={o.y} width={o.w} height={o.h}
@@ -278,7 +279,6 @@ export function Scene() {
               );
             })}
 
-            {/* Live-Vorschau beim Ziehen */}
             {draft && draft.tool === "rect" && (
               <rect className="det-draft" x={Math.min(draft.x1, draft.x2)} y={Math.min(draft.y1, draft.y2)}
                 width={Math.abs(draft.x2 - draft.x1)} height={Math.abs(draft.y2 - draft.y1)}
@@ -298,18 +298,12 @@ export function Scene() {
         </div>
 
         <div className="det-actions">
-          <span className="draw-mode-hint">
-            {tool === "select" ? "Objekt greifen und verschieben · Doppelklick löscht"
-              : tool === "label" ? "Auf die Karte tippen, um Text zu setzen"
-              : tool === "wall" ? "Wand ziehen · Doppelklick auf eine Wand löscht sie"
-              : tool === "door" ? "Tür ziehen (Lücke in der Wand)"
-              : `${tool === "circle" ? "Runden" : "Rechteckigen"} Raum aufziehen (${DET_FLOOR_LABELS[floor]})`}
-          </span>
+          <span className="draw-mode-hint">{modeHint}</span>
           <span style={{ flex: 1 }} />
-          <button className="gla-btn" onClick={() => setObjects(os => os.slice(0, -1))}>↶ Rückgängig</button>
-          <button className="gla-btn" onClick={() => setObjects(() => [])}>Leeren</button>
-          <button className="gla-btn" onClick={() => saveNow("scene")}>Speichern</button>
-          <button className="gla-btn primary" onClick={alsKarteUebernehmen}>Als Karte übernehmen →</button>
+          <button className="gla-btn" onClick={() => setObjects(os => os.slice(0, -1))}>{t.scene_undo}</button>
+          <button className="gla-btn" onClick={() => setObjects(() => [])}>{t.scene_clear}</button>
+          <button className="gla-btn" onClick={() => saveNow("scene")}>{t.scene_save}</button>
+          <button className="gla-btn primary" onClick={alsKarteUebernehmen}>{t.scene_take_as_map}</button>
         </div>
       </div>
     </div>

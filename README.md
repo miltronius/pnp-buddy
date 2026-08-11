@@ -76,7 +76,7 @@ Jeder Push auf `main` löst ein neues Deployment aus.
 src/
   components/
     GrandLineAssistant.tsx    PnP-Hub: Tab-Leiste, Systemwahl, Topbar
-    DnDAssistant.tsx          D&D-Hub: Tab-Leiste
+    DnDAssistant.tsx          D&D-Hub: Tab-Leiste, Sprachschalter
     CharacterSheet.tsx        PnP-Charakterbogen
     CombatTracker.tsx         Initiative-Tracker
     MapTracker.tsx            Figuren-Karte mit Tokens
@@ -89,10 +89,14 @@ src/
     LoginScreen.tsx           E-Mail-/Passwort-Anmeldung
     LoadingScreen.tsx         Ladebildschirm
     dnd/
-      DnDSheet.tsx            D&D-Charakterbogen (Attribute, RK, LP)
+      DnDSheet.tsx            Grundinfos, Kampfwerte, Attribute, Rettungswürfe
       DnDSkills.tsx           Fähigkeiten mit Profizienz/Expertise
-      DnDFeatures.tsx         Merkmale & Features
-      DnDSpells.tsx           Zauber & Slots, Suche in der Spell-DB
+      DnDFeatures.tsx         Merkmale & Features mit Herkunfts-Filter
+      DnDSpells.tsx           Zauberliste, Slots, Ressourcen, Spell-DB-Suche
+      DnDClassRoadmap.tsx     Klassen-Stufenplan, Metamagic-Picker (Sorcerer)
+      DnDCombatRound.tsx      Kampfrunden-Tracker (Aktion/Bonus/Reaktion/Bewegung)
+      DnDResourceHUD.tsx      Kopfleiste: Slots + Ressourcen + Rast-Buttons
+      Autocomplete.tsx        Dropdown-Eingabefeld mit Tastaturnavigation
   lib/
     game.ts         balanceValue, parseDamage, fruitBalance — die PnP-Regeln
     physics.ts      Quaternionen, konvexe Hüllen, Trägheitstensoren, readFace
@@ -102,15 +106,21 @@ src/
     images.ts       clientseitiges Verkleinern vor dem Hochladen
     dndGame.ts      D&D-Regeln (proficiencyBonus, modDisplay, skillMod …)
     dndSpellDB.ts   Suche in dndSpells.json (1 319 Zauber, Open5e v2)
+    dndClasses.ts   Slot-Tabellen, classLevelProgression, applyClass
+    dndSpecies.ts   Spezies-Definitionen (D&D 2024 PHB), applySpeciesToCharacter
     pdf.ts          Druckansicht des PnP-Charakterbogens
     supabase.ts     Supabase-Singleton
   hooks/
-    useAuth.ts      Session + signIn / signUp / signOut
-    useAutosave.ts  entprelltes Speichern (800 ms)
+    useAuth.ts          Session + signIn / signUp / signOut
+    useAutosave.ts      entprelltes Speichern (800 ms)
     useDnDCharacter.ts  D&D-Charakterzustand (Slots, Ressourcen, Zauber …)
   state/
     CampaignContext.tsx   gespeicherte PnP-Daten + Autosave-Status
     SessionContext.tsx    Reiter, Kampf-Tracker, Würfe (nicht gespeichert)
+  i18n/
+    index.tsx   LangProvider, useLang, useT, LangToggle, useGameLabels
+    de.ts       Deutsche Strings
+    en.ts       Englische Strings
   data/
     dndSpells.json        1 319 Zauber aus Open5e v2 (SRD + Homebrew)
     dndSpellNames.ts      deutsche Zaubernamen (SPELL_NAMES_DE)
@@ -143,14 +153,52 @@ Zeile steht nur der Pfad. Im lokalen Modus bleiben sie Data-URLs.
 Die Augenzahl auf dem Würfeltisch wird aus der Fläche gelesen, die am Ende
 oben liegt — nichts wird vorgegeben. Der W4 wird unten abgelesen.
 
+---
+
 ## D&D-Assistent
 
-- Attribute STR/DEX/CON/INT/WIS/CHA mit Modifikatoren.
-- Rettungswürfe und Fähigkeiten mit Profizienz/Expertise.
-- Merkmale & Features mit Herkunfts-Filter (Klasse, Spezies, Talent …).
-- Zauber & Slots, Konzentrationsanzeige, Ressourcen (z. B. Ki, Arcane Recovery).
-- Eingebettete Spell-DB: 1 319 Zauber aus Open5e v2, DE/EN umschaltbar,
-  Homebrew-Filter, direkter Link zur 5esrd.com-Seite pro Zauber.
+Der D&D-Modus ist vollständig vom PnP-Modus getrennt und speichert seinen
+Zustand lokal (`gla:dnd:char`). Tabs:
+
+- **Charakterbogen** — Name, Spezies, Klasse, Unterklasse, Hintergrund und
+  Stufe als Autocomplete-Felder; Kampfwerte (RK, TP, Geschwindigkeit,
+  Übungsbonus); Attribute mit Modifikatoren; Rettungswürfe.
+- **Fähigkeiten** — alle 18 D&D-Fähigkeiten mit Profizienz- und
+  Expertise-Markierung.
+- **Merkmale** — Features nach Herkunft (Klasse, Unterklasse, Spezies, Talent,
+  Hintergrund) gefiltert; Hinzufügen, Bearbeiten, Löschen.
+- **Zauber & Slots** — Zauberliste, Slot-Konfiguration, Konzentrations-Banner,
+  benutzerdefinierte Ressourcen (Ki, Arcane Recovery …), eingebettete Spell-DB.
+- **Kampfrunde** — Tracker für Aktion, Bonusaktion, Reaktion und Bewegung pro
+  Runde; Reset-Knopf für die nächste Runde.
+
+### Klassen & Spezies
+
+`dndClasses.ts` kennt alle Klassen aus dem D&D 2024 PHB mit korrekten
+Slot-Tabellen (Voll-/Halb-/Drittelzauberer) und Feature-Listen pro Stufe.
+`dndSpecies.ts` enthält alle Spezies mit ihren Merkmalen und Stufen-Progressionen.
+Beide Module speisen die Autocomplete-Felder im Charakterbogen und liefern
+die Vorschau beim „Klasse anwenden"-Dialog.
+
+### Spell-Datenbank
+
+1 319 Zauber aus Open5e v2, durchsuchbar nach Name (DE/EN), Stufe und
+Homebrew-Status. Klick auf einen Treffer befüllt das Zauber-Formular vor.
+Direkter Link zur 5esrd.com-Seite pro SRD-Zauber. Die DE/EN-Anzeige folgt
+dem globalen Sprachschalter im Header.
+
+### Ressourcen-HUD
+
+Dauerhaft sichtbare Kopfleiste mit Slot-Blasen (je Stufe) und
+Ressourcen-Chips; Klick verbraucht / hält Ctrl zum Wiederherstellen.
+Lang- und Kurzrast-Buttons daneben.
+
+### Sprache
+
+DE/EN-Schalter oben rechts im D&D-Header. Steuert alle UI-Texte **und** die
+Zaubernamen in der Spell-DB-Suche (kein getrennter Schalter mehr).
+
+---
 
 `grandline-assistant.jsx` im Wurzelverzeichnis ist der ursprüngliche Prototyp
 und bleibt als Referenz liegen.

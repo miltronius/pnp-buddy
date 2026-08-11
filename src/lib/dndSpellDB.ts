@@ -40,13 +40,16 @@ const DB: SpellDBEintrag[] = (rohdaten as RohEintrag[]).map(z => ({
 
 export function spellSuche(
   suchbegriff: string,
-  opts: { nurSRD?: boolean; max?: number } = {},
+  opts: { nurSRD?: boolean; max?: number; stufe?: number } = {},
 ): SpellDBEintrag[] {
-  if (!suchbegriff.trim()) return [];
-  const q = suchbegriff.toLowerCase();
+  const q = suchbegriff.trim().toLowerCase();
+  if (!q && opts.stufe === undefined) return [];
   return DB
-    .filter(z => (!opts.nurSRD || !z.isHomebrew) &&
-      (z.name.toLowerCase().includes(q) || z.nameDe.toLowerCase().includes(q)))
+    .filter(z =>
+      (!opts.nurSRD || !z.isHomebrew) &&
+      (opts.stufe === undefined || z.stufe === opts.stufe) &&
+      (!q || z.name.toLowerCase().includes(q) || z.nameDe.toLowerCase().includes(q))
+    )
     .slice(0, opts.max ?? 30);
 }
 

@@ -6,98 +6,98 @@ import {
   normalizeLogbook, normalizeScene, normalizeDrawing,
 } from "./normalize";
 import type {
-  Charakter, Crew, KampagnenDaten, KartenZustand,
-  LogbuchZustand, SchauplatzZustand, ZeichnungZustand,
+  Character, Crew, CampaignData, MapState,
+  LogbookState, SceneState, DrawingState,
 } from "../types";
 import type { Storage } from "./storage";
 
-type KartenArt = "tracker" | "drawing" | "detail";
+type MapKind = "tracker" | "drawing" | "detail";
 
-interface CharakterZeile {
+interface CharacterRow {
   id: string;
   owner: string;
   campaign_id: string;
   name: string;
-  epitheton: string | null;
-  stufe: number;
-  leben: number;
-  schaden: string | null;
+  epithet: string | null;
+  level: number;
+  hp: number;
+  damage: string | null;
   berries: number | string;
-  kopfgeld: number | string;
-  aussehen: string | null;
-  ziel: string | null;
-  spezial: string | null;
-  eigenschaften: string | null;
-  attribute: unknown;
-  hab_und_gut: unknown;
-  waffen: unknown;
+  bounty: number | string;
+  appearance: string | null;
+  goal: string | null;
+  special: string | null;
+  traits: string | null;
+  attrs: unknown;
+  inventory: unknown;
+  weapons: unknown;
   skills: unknown;
-  teufelsfrucht: unknown;
+  devil_fruit: unknown;
   portrait_path: string | null;
-  sortierung: number;
+  sort_order: number;
 }
 
-/* ---------- Mapper ---------- */
+/* ---------- Mappers ---------- */
 
-function zuCharakter(r: CharakterZeile): Charakter {
+function toCharacter(r: CharacterRow): Character {
   return normalizeCharacter({
     id: r.id,
     name: r.name,
-    epitheton: r.epitheton,
-    stufe: r.stufe,
-    leben: r.leben,
-    schaden: r.schaden,
+    epithet: r.epithet,
+    level: r.level,
+    hp: r.hp,
+    damage: r.damage,
     berries: Number(r.berries),
-    kopfgeld: Number(r.kopfgeld),
-    aussehen: r.aussehen,
-    ziel: r.ziel,
-    spezial: r.spezial,
-    eigenschaften: r.eigenschaften,
-    attribute: r.attribute,
-    habUndGut: r.hab_und_gut,
-    waffen: r.waffen,
+    bounty: Number(r.bounty),
+    appearance: r.appearance,
+    goal: r.goal,
+    special: r.special,
+    traits: r.traits,
+    attrs: r.attrs,
+    inventory: r.inventory,
+    weapons: r.weapons,
     skills: r.skills,
-    teufelsfrucht: r.teufelsfrucht,
+    devilFruit: r.devil_fruit,
     portrait: r.portrait_path,
   });
 }
 
-function zuZeile(userId: string, campaignId: string, c: Charakter, sortierung: number) {
+function toRow(userId: string, campaignId: string, c: Character, sortOrder: number) {
   return {
     id: c.id,
     owner: userId,
     campaign_id: campaignId,
     name: c.name,
-    epitheton: c.epitheton,
-    stufe: c.stufe,
-    leben: c.leben,
-    schaden: c.schaden,
+    epithet: c.epithet,
+    level: c.level,
+    hp: c.hp,
+    damage: c.damage,
     berries: c.berries,
-    kopfgeld: c.kopfgeld,
-    aussehen: c.aussehen,
-    ziel: c.ziel,
-    spezial: c.spezial,
-    eigenschaften: c.eigenschaften,
-    attribute: c.attribute,
-    hab_und_gut: c.habUndGut,
-    waffen: c.waffen,
+    bounty: c.bounty,
+    appearance: c.appearance,
+    goal: c.goal,
+    special: c.special,
+    traits: c.traits,
+    attrs: c.attrs,
+    inventory: c.inventory,
+    weapons: c.weapons,
     skills: c.skills,
-    teufelsfrucht: c.teufelsfrucht,
+    devil_fruit: c.devilFruit,
     portrait_path: c.portrait,
-    sortierung,
+    sort_order: sortOrder,
   };
 }
 
-/* ---------- Cloud-Speicher ---------- */
+/* ---------- Cloud storage ---------- */
 
 export function createCloudStorage(userId: string): Storage {
-  // Für den ersten Meilenstein hat jeder Benutzer genau eine Kampagne.
-  // Die Spalte ist trotzdem überall gesetzt, damit Meilenstein 2
-  // (geteilte Kampagnen) ohne Datenwanderung nachrüstbar ist.
-  let kampagneId: string | null = null;
+  // For milestone 1 each user has exactly one campaign.
+  // The column is still set everywhere so milestone 2
+  // (shared campaigns) can be added without data migration.
+  let campaignId: string | null = null;
 
-  async function holeKampagne(): Promise<string> {
-    if (kampagneId) return kampagneId;
+  async function getCampaign(): Promise<string> {
+    if (campaignId) return campaignId;
     const sb = requireSupabase();
     const { data, error } = await sb
       .from("campaigns")
@@ -107,22 +107,22 @@ export function createCloudStorage(userId: string): Storage {
       .limit(1);
     if (error) throw error;
     if (data && data.length) {
-      kampagneId = data[0].id as string;
-      return kampagneId;
+      campaignId = data[0].id as string;
+      return campaignId;
     }
-    const { data: neu, error: fehler } = await sb
+    const { data: created, error: createErr } = await sb
       .from("campaigns")
-      .insert({ owner: userId, name: "Meine Kampagne" })
+      .insert({ owner: userId, name: "My Campaign" })
       .select("id")
       .single();
-    if (fehler) throw fehler;
-    kampagneId = neu.id as string;
-    return kampagneId;
+    if (createErr) throw createErr;
+    campaignId = created.id as string;
+    return campaignId;
   }
 
-  async function ladeKarteRoh(kind: KartenArt) {
+  async function loadMapRaw(kind: MapKind) {
     const sb = requireSupabase();
-    const cid = await holeKampagne();
+    const cid = await getCampaign();
     const { data, error } = await sb
       .from("maps")
       .select("data, bg_path")
@@ -134,32 +134,32 @@ export function createCloudStorage(userId: string): Storage {
     return data as { data: unknown; bg_path: string | null } | null;
   }
 
-  async function schreibeKarte(kind: KartenArt, daten: unknown, bgPfad: string | null) {
+  async function writeMap(kind: MapKind, payload: unknown, bgPath: string | null) {
     const sb = requireSupabase();
-    const cid = await holeKampagne();
+    const cid = await getCampaign();
     const { error } = await sb
       .from("maps")
       .upsert(
-        { owner: userId, campaign_id: cid, kind, data: daten, bg_path: bgPfad },
+        { owner: userId, campaign_id: cid, kind, data: payload, bg_path: bgPath },
         { onConflict: "campaign_id,kind" },
       );
     if (error) throw error;
   }
 
   return {
-    modus: "cloud",
+    mode: "cloud",
 
-    async ladeAlles(): Promise<KampagnenDaten> {
+    async loadAll(): Promise<CampaignData> {
       const sb = requireSupabase();
-      const cid = await holeKampagne();
+      const cid = await getCampaign();
 
       const [charsRes, crewRes, trackerRes, drawingRes, detailRes, logRes] = await Promise.all([
         sb.from("characters").select("*").eq("owner", userId).eq("campaign_id", cid)
-          .order("sortierung", { ascending: true }),
+          .order("sort_order", { ascending: true }),
         sb.from("crews").select("*").eq("owner", userId).eq("campaign_id", cid).maybeSingle(),
-        ladeKarteRoh("tracker"),
-        ladeKarteRoh("drawing"),
-        ladeKarteRoh("detail"),
+        loadMapRaw("tracker"),
+        loadMapRaw("drawing"),
+        loadMapRaw("detail"),
         sb.from("logbooks").select("*").eq("owner", userId).eq("campaign_id", cid).maybeSingle(),
       ]);
 
@@ -167,105 +167,104 @@ export function createCloudStorage(userId: string): Storage {
       if (crewRes.error) throw crewRes.error;
       if (logRes.error) throw logRes.error;
 
-      const chars = (charsRes.data as CharakterZeile[] | null ?? []).map(zuCharakter);
+      const chars = (charsRes.data as CharacterRow[] | null ?? []).map(toCharacter);
 
-      const crewZeile = crewRes.data as Record<string, unknown> | null;
-      const crew = normalizeCrew(crewZeile ? {
-        name: crewZeile.name,
-        jollyRoger: crewZeile.jolly_roger_path,
-        schiffName: crewZeile.schiff_name,
-        schiffBeschreibung: crewZeile.schiff_beschreibung,
-        flotte: crewZeile.flotte,
+      const crewRow = crewRes.data as Record<string, unknown> | null;
+      const crew = normalizeCrew(crewRow ? {
+        name: crewRow.name,
+        jollyRoger: crewRow.jolly_roger_path,
+        shipName: crewRow.ship_name,
+        shipDescription: crewRow.ship_description,
+        fleet: crewRow.fleet,
       } : null);
 
-      const trackerDaten = (trackerRes?.data ?? {}) as Record<string, unknown>;
-      const karte = normalizeMap({ ...trackerDaten, bg: trackerRes?.bg_path ?? null });
-      const zeichnung = normalizeDrawing(drawingRes?.data ?? null);
-      const schauplatz = normalizeScene(detailRes?.data ?? null);
+      const trackerData = (trackerRes?.data ?? {}) as Record<string, unknown>;
+      const map = normalizeMap({ ...trackerData, bg: trackerRes?.bg_path ?? null });
+      const drawing = normalizeDrawing(drawingRes?.data ?? null);
+      const scene = normalizeScene(detailRes?.data ?? null);
 
-      const logZeile = logRes.data as Record<string, unknown> | null;
-      const logbuch = normalizeLogbook(logZeile
-        ? { notizen: logZeile.notizen, quests: logZeile.quests }
+      const logRow = logRes.data as Record<string, unknown> | null;
+      const logbook = normalizeLogbook(logRow
+        ? { notes: logRow.notes, quests: logRow.quests }
         : null);
 
-      return { chars, crew, karte, zeichnung, schauplatz, logbuch };
+      return { chars, crew, map, drawing, scene, logbook };
     },
 
-    async speichereCharaktere(chars: Charakter[]) {
+    async saveCharacters(chars: Character[]) {
       const sb = requireSupabase();
-      const cid = await holeKampagne();
+      const cid = await getCampaign();
       if (!chars.length) return;
-      const zeilen = chars.map((c, i) => zuZeile(userId, cid, c, i));
-      const { error } = await sb.from("characters").upsert(zeilen);
+      const rows = chars.map((c, i) => toRow(userId, cid, c, i));
+      const { error } = await sb.from("characters").upsert(rows);
       if (error) throw error;
     },
 
-    async loescheCharakter(id: string) {
+    async deleteCharacter(id: string) {
       const sb = requireSupabase();
       const { error } = await sb.from("characters").delete().eq("id", id).eq("owner", userId);
       if (error) throw error;
     },
 
-    async speichereCrew(crew: Crew) {
+    async saveCrew(crew: Crew) {
       const sb = requireSupabase();
-      const cid = await holeKampagne();
+      const cid = await getCampaign();
       const { error } = await sb.from("crews").upsert({
         owner: userId,
         campaign_id: cid,
         name: crew.name,
         jolly_roger_path: crew.jollyRoger,
-        schiff_name: crew.schiffName,
-        schiff_beschreibung: crew.schiffBeschreibung,
-        flotte: crew.flotte,
+        ship_name: crew.shipName,
+        ship_description: crew.shipDescription,
+        fleet: crew.fleet,
       }, { onConflict: "campaign_id" });
       if (error) throw error;
     },
 
-    async speichereKarte(k: KartenZustand) {
-      await schreibeKarte("tracker", { gridOn: k.gridOn, tokens: k.tokens }, k.bg);
+    async saveMap(k: MapState) {
+      await writeMap("tracker", { gridOn: k.gridOn, tokens: k.tokens }, k.bg);
     },
 
-    async speichereZeichnung(z: ZeichnungZustand) {
-      await schreibeKarte("drawing", { grid: z.grid, buildings: z.buildings }, null);
+    async saveDrawing(z: DrawingState) {
+      await writeMap("drawing", { grid: z.grid, buildings: z.buildings }, null);
     },
 
-    async speichereSchauplatz(s: SchauplatzZustand) {
-      await schreibeKarte("detail", { objects: s.objects, bg: s.bg }, null);
+    async saveScene(s: SceneState) {
+      await writeMap("detail", { objects: s.objects, bg: s.bg }, null);
     },
 
-    async speichereLogbuch(l: LogbuchZustand) {
+    async saveLogbook(l: LogbookState) {
       const sb = requireSupabase();
-      const cid = await holeKampagne();
+      const cid = await getCampaign();
       const { error } = await sb.from("logbooks").upsert({
         owner: userId,
         campaign_id: cid,
-        notizen: l.notizen,
+        notes: l.notes,
         quests: l.quests,
       }, { onConflict: "campaign_id" });
       if (error) throw error;
     },
 
-    // Bilder gehören in den Storage, nicht in die Zeile: gespeichert wird
-    // nur der Pfad. Der Präfix ist die User-ID — darauf greift die
-    // Storage-Policy zu.
-    async bildSpeichern(datenUrl: string): Promise<string> {
-      if (!datenUrl.startsWith("data:")) return datenUrl;
+    // Images go into Storage, not into the row: only the path is stored.
+    // The prefix is the user ID — that is what the Storage policy checks.
+    async saveImage(dataUrl: string): Promise<string> {
+      if (!dataUrl.startsWith("data:")) return dataUrl;
       const sb = requireSupabase();
-      const pfad = `${userId}/${newUuid()}.jpg`;
-      const blob = await dataUrlToBlob(datenUrl);
+      const path = `${userId}/${newUuid()}.jpg`;
+      const blob = await dataUrlToBlob(dataUrl);
       const { error } = await sb.storage
         .from(IMAGE_BUCKET)
-        .upload(pfad, blob, { contentType: "image/jpeg", upsert: false });
+        .upload(path, blob, { contentType: "image/jpeg", upsert: false });
       if (error) throw error;
-      return pfad;
+      return path;
     },
 
-    bildUrl(wert: string | null): string | null {
-      if (!wert) return null;
-      // Data-URLs und fertige Links unverändert durchreichen
-      if (wert.startsWith("data:") || wert.startsWith("http")) return wert;
+    imageUrl(value: string | null): string | null {
+      if (!value) return null;
+      // Pass data URLs and full URLs through unchanged
+      if (value.startsWith("data:") || value.startsWith("http")) return value;
       const sb = requireSupabase();
-      return sb.storage.from(IMAGE_BUCKET).getPublicUrl(wert).data.publicUrl;
+      return sb.storage.from(IMAGE_BUCKET).getPublicUrl(value).data.publicUrl;
     },
   };
 }

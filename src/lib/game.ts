@@ -1,15 +1,15 @@
 import {
   ATTRIBUTE,
-  type AttributName,
-  type Attributwerte,
-  type Charakter,
+  type AttrName,
+  type AttrValues,
+  type Character,
   type Crew,
-  type FruchtRang,
-  type KartenZustand,
-  type LogbuchZustand,
-  type SchauplatzZustand,
-  type Wuerfelseiten,
-  type ZeichnungZustand,
+  type FruitRank,
+  type MapState,
+  type LogbookState,
+  type SceneState,
+  type DieSides,
+  type DrawingState,
 } from "../types";
 
 /** Balance modifier per attribute level (game rule lookup table). */
@@ -30,14 +30,14 @@ export function withSign(n: number): string {
   return n >= 0 ? `+${n}` : String(n);
 }
 
-export type SchadensTeil =
+export type DamagePart =
   | { flat: number; n?: undefined; sides?: undefined; sign?: undefined }
-  | { n: number; sides: Wuerfelseiten; sign: number; flat?: undefined };
+  | { n: number; sides: DieSides; sign: number; flat?: undefined };
 
-const ERLAUBTE_SEITEN: Wuerfelseiten[] = [4, 6, 8, 10, 12, 20, 100];
+const ALLOWED_SIDES: DieSides[] = [4, 6, 8, 10, 12, 20, 100];
 
-export function parseDamage(str: string | null | undefined): SchadensTeil[] {
-  const parts: SchadensTeil[] = [];
+export function parseDamage(str: string | null | undefined): DamagePart[] {
+  const parts: DamagePart[] = [];
   const clean = String(str || "").replace(/\s+/g, "").toLowerCase();
   const re = /([+-]?)(\d*)[wd](\d+)|([+-]?\d+)/g;
   let m: RegExpExecArray | null;
@@ -47,15 +47,15 @@ export function parseDamage(str: string | null | undefined): SchadensTeil[] {
     } else {
       const sign = m[1] === "-" ? -1 : 1;
       const n = m[2] ? parseInt(m[2], 10) : 1;
-      const sides = parseInt(m[3], 10) as Wuerfelseiten;
-      if (ERLAUBTE_SEITEN.includes(sides)) parts.push({ n, sides, sign });
+      const sides = parseInt(m[3], 10) as DieSides;
+      if (ALLOWED_SIDES.includes(sides)) parts.push({ n, sides, sign });
     }
   }
   return parts;
 }
 
-export interface RankBalance extends FruchtRang {
-  kosten: number;
+export interface RankBalance extends FruitRank {
+  cost: number;
   canUnlock: boolean;
   canLock: boolean;
 }
@@ -63,27 +63,27 @@ export interface RankBalance extends FruchtRang {
 export interface FruitBalance {
   available: number;
   spent: number;
-  raenge: RankBalance[];
+  ranks: RankBalance[];
 }
 
-export function fruitBalance(stufe: number, raenge: FruchtRang[] | undefined): FruitBalance {
-  let ausgegeben = 0;
-  const base = (raenge || []).map(r => {
-    const kosten = Math.max(0, r.kostenLevel | 0);
-    if (r.unlocked) ausgegeben += kosten;
-    return { ...r, kosten };
+export function fruitBalance(level: number, ranks: FruitRank[] | undefined): FruitBalance {
+  let spent = 0;
+  const base = (ranks || []).map(r => {
+    const cost = Math.max(0, r.costLevel | 0);
+    if (r.unlocked) spent += cost;
+    return { ...r, cost };
   });
-  const verfuegbar = (stufe | 0) - ausgegeben;
+  const available = (level | 0) - spent;
   const out: RankBalance[] = base.map((r, i) => {
     const prevOk = i === 0 || base[i - 1].unlocked;
     const nextLocked = i === base.length - 1 || !base[i + 1].unlocked;
     return {
       ...r,
-      canUnlock: !r.unlocked && prevOk && verfuegbar >= r.kosten,
+      canUnlock: !r.unlocked && prevOk && available >= r.cost,
       canLock: !!r.unlocked && nextLocked,
     };
   });
-  return { available: verfuegbar, spent: ausgegeben, raenge: out };
+  return { available, spent, ranks: out };
 }
 
 export function newUuid(): string {
@@ -101,51 +101,51 @@ export function newId(prefix = "i"): string {
   return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-export function emptyAttributes(): Attributwerte {
-  return Object.fromEntries(ATTRIBUTE.map(a => [a, 8])) as Attributwerte;
+export function emptyAttributes(): AttrValues {
+  return Object.fromEntries(ATTRIBUTE.map(a => [a, 8])) as AttrValues;
 }
 
-export function newCharacter(): Charakter {
+export function newCharacter(): Character {
   return {
     id: newUuid(),
     name: "",
-    stufe: 0,
-    leben: 14,
-    schaden: "W6 + W6",
-    aussehen: "",
-    ziel: "",
-    spezial: "",
-    eigenschaften: "",
-    habUndGut: [{ id: newId("g"), text: "", anzahl: 1 }],
-    waffen: [],
+    level: 0,
+    hp: 14,
+    damage: "W6 + W6",
+    appearance: "",
+    goal: "",
+    special: "",
+    traits: "",
+    inventory: [{ id: newId("g"), text: "", count: 1 }],
+    weapons: [],
     skills: [],
-    teufelsfrucht: { name: "", typ: "", raenge: [] },
-    kopfgeld: 0,
+    devilFruit: { name: "", type: "", ranks: [] },
+    bounty: 0,
     portrait: null,
-    epitheton: "",
+    epithet: "",
     berries: 0,
-    attribute: emptyAttributes(),
+    attrs: emptyAttributes(),
   };
 }
 
 export function newCrew(): Crew {
-  return { name: "", jollyRoger: null, schiffName: "", schiffBeschreibung: "", flotte: "" };
+  return { name: "", jollyRoger: null, shipName: "", shipDescription: "", fleet: "" };
 }
 
-export function newMap(): KartenZustand {
+export function newMap(): MapState {
   return { bg: null, gridOn: true, tokens: [] };
 }
 
-export function newDrawing(): ZeichnungZustand {
+export function newDrawing(): DrawingState {
   return { grid: null, buildings: [] };
 }
 
-export function newScene(): SchauplatzZustand {
-  return { objects: [], bg: "stein" };
+export function newScene(): SceneState {
+  return { objects: [], bg: "stone" };
 }
 
-export function newLogbook(): LogbuchZustand {
-  return { notizen: "", quests: [] };
+export function newLogbook(): LogbookState {
+  return { notes: "", quests: [] };
 }
 
 export function formatBerry(n: number | string | null | undefined): string {
@@ -159,7 +159,7 @@ export const VERDICT_TEXT = {
   fail: "FEHLSCHLAG",
 } as const;
 
-export function characterBalance(c: Charakter | null | undefined, att: AttributName | null): number {
+export function characterBalance(c: Character | null | undefined, att: AttrName | null): number {
   if (!c || !att) return 0;
-  return balanceValue(c.attribute?.[att]);
+  return balanceValue(c.attrs?.[att]);
 }

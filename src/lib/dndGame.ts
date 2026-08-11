@@ -1,6 +1,6 @@
-import type { AbilityKey, DnDCharakter, HerkunftArt } from "../types/dnd";
+import type { AbilityKey, DnDCharacter, OriginType } from "../types/dnd";
 
-export function attributMod(wert: number): number {
+export function abilityMod(wert: number): number {
   return Math.floor((wert - 10) / 2);
 }
 
@@ -19,37 +19,37 @@ export function newId(): string {
 export interface DnDSkillDef {
   id: string;
   name: string;
-  attribut: AbilityKey;
+  ability: AbilityKey;
 }
 
 export const DND_SKILLS: DnDSkillDef[] = [
-  { id: 'athletics', name: 'Athletik', attribut: 'STR' },
-  { id: 'acrobatics', name: 'Akrobatik', attribut: 'DEX' },
-  { id: 'sleight_of_hand', name: 'Taschendiebstahl', attribut: 'DEX' },
-  { id: 'stealth', name: 'Heimlichkeit', attribut: 'DEX' },
-  { id: 'arcana', name: 'Arkane Kunde', attribut: 'INT' },
-  { id: 'history', name: 'Geschichte', attribut: 'INT' },
-  { id: 'investigation', name: 'Ermittlung', attribut: 'INT' },
-  { id: 'nature', name: 'Naturkunde', attribut: 'INT' },
-  { id: 'religion', name: 'Religion', attribut: 'INT' },
-  { id: 'animal_handling', name: 'Tierführung', attribut: 'WIS' },
-  { id: 'insight', name: 'Menschenkenntnis', attribut: 'WIS' },
-  { id: 'medicine', name: 'Medizin', attribut: 'WIS' },
-  { id: 'perception', name: 'Wahrnehmung', attribut: 'WIS' },
-  { id: 'survival', name: 'Überleben', attribut: 'WIS' },
-  { id: 'deception', name: 'Täuschung', attribut: 'CHA' },
-  { id: 'intimidation', name: 'Einschüchterung', attribut: 'CHA' },
-  { id: 'performance', name: 'Aufführung', attribut: 'CHA' },
-  { id: 'persuasion', name: 'Überzeugung', attribut: 'CHA' },
+  { id: 'athletics', name: 'Athletik', ability: 'STR' },
+  { id: 'acrobatics', name: 'Akrobatik', ability: 'DEX' },
+  { id: 'sleight_of_hand', name: 'Taschendiebstahl', ability: 'DEX' },
+  { id: 'stealth', name: 'Heimlichkeit', ability: 'DEX' },
+  { id: 'arcana', name: 'Arkane Kunde', ability: 'INT' },
+  { id: 'history', name: 'Geschichte', ability: 'INT' },
+  { id: 'investigation', name: 'Ermittlung', ability: 'INT' },
+  { id: 'nature', name: 'Naturkunde', ability: 'INT' },
+  { id: 'religion', name: 'Religion', ability: 'INT' },
+  { id: 'animal_handling', name: 'Tierführung', ability: 'WIS' },
+  { id: 'insight', name: 'Menschenkenntnis', ability: 'WIS' },
+  { id: 'medicine', name: 'Medizin', ability: 'WIS' },
+  { id: 'perception', name: 'Wahrnehmung', ability: 'WIS' },
+  { id: 'survival', name: 'Überleben', ability: 'WIS' },
+  { id: 'deception', name: 'Täuschung', ability: 'CHA' },
+  { id: 'intimidation', name: 'Einschüchterung', ability: 'CHA' },
+  { id: 'performance', name: 'Aufführung', ability: 'CHA' },
+  { id: 'persuasion', name: 'Überzeugung', ability: 'CHA' },
 ];
 
 export function skillMod(
   fId: string,
-  char: Pick<DnDCharakter, 'attribute' | 'stufe' | 'skill_profis' | 'skill_expertise'>,
+  char: Pick<DnDCharacter, 'attribute' | 'stufe' | 'skill_profis' | 'skill_expertise'>,
 ): number {
   const f = DND_SKILLS.find(x => x.id === fId);
   if (!f) return 0;
-  const base = attributMod(char.attribute[f.attribut]);
+  const base = abilityMod(char.attribute[f.ability]);
   const pb = proficiencyBonus(char.stufe);
   if (char.skill_expertise.includes(fId)) return base + pb * 2;
   if (char.skill_profis.includes(fId)) return base + pb;
@@ -58,14 +58,14 @@ export function skillMod(
 
 export function savingThrowMod(
   ability: AbilityKey,
-  char: Pick<DnDCharakter, 'attribute' | 'stufe' | 'rettungswurf_profis'>,
+  char: Pick<DnDCharacter, 'attribute' | 'stufe' | 'rettungswurf_profis'>,
 ): number {
-  const base = attributMod(char.attribute[ability]);
+  const base = abilityMod(char.attribute[ability]);
   const pb = proficiencyBonus(char.stufe);
   return char.rettungswurf_profis.includes(ability) ? base + pb : base;
 }
 
-export const SOURCE_LABEL: Record<HerkunftArt, string> = {
+export const SOURCE_LABEL: Record<OriginType, string> = {
   SPECIES: 'Spezies',
   CLASS: 'Klasse',
   SUBCLASS: 'Unterklasse',
@@ -74,7 +74,7 @@ export const SOURCE_LABEL: Record<HerkunftArt, string> = {
   UNIVERSAL: 'Universal',
 };
 
-export const SOURCE_COLOR: Record<HerkunftArt, string> = {
+export const SOURCE_COLOR: Record<OriginType, string> = {
   SPECIES: '#3d8b5e',
   CLASS: '#3a6ea8',
   SUBCLASS: '#7a4a9e',
@@ -99,7 +99,7 @@ export const ACTION_LABEL: Record<string, string> = {
 
 export const ABILITIES: AbilityKey[] = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 
-export function emptyCharacter(): DnDCharakter {
+export function emptyCharacter(): DnDCharacter {
   return {
     id: newId(),
     name: '',
@@ -121,5 +121,6 @@ export function emptyCharacter(): DnDCharakter {
     zauberschlitze: {},
     konzentration: null,
     ressourcen: [],
+    metamagic: [],
   };
 }

@@ -18,7 +18,13 @@
       "PowerShell(pnpm exec jiti \"C:\\\\Users\\\\milto\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--dev-pnp-buddy\\\\c006c91d-ff00-4d31-aafd-e8a23595e8a7\\\\scratchpad\\\\smoke.ts\" 2>&1)",
       "PowerShell(pnpm exec jiti \"C:\\\\Users\\\\milto\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--dev-pnp-buddy\\\\c006c91d-ff00-4d31-aafd-e8a23595e8a7\\\\scratchpad\\\\smoke.ts\" 2>&1 | Select-Object -Last 6; \"EXIT=$LASTEXITCODE\")",
       "PowerShell(Start-Process -FilePath \"node\" -ArgumentList \"node_modules/vite/bin/vite.js\",\"--port\",\"5199\" -WorkingDirectory \"d:\\\\dev\\\\pnp-buddy\" -WindowStyle Hidden -RedirectStandardOutput \"$env:TEMP\\\\vite-out.log\" -RedirectStandardError \"$env:TEMP\\\\vite-err.log\"; Start-Sleep -Seconds 6; try { $r = Invoke-WebRequest -Uri \"http://localhost:5199/\" -UseBasicParsing -TimeoutSec 15; \"INDEX $\\($r.StatusCode\\) len=$\\($r.Content.Length\\)\" } catch { \"INDEX FEHLER: $_\" }; foreach \\($m in @\\(\"/src/main.tsx\",\"/src/index.css\",\"/src/components/PhysicsTable.tsx\",\"/src/state/KampagneContext.tsx\"\\)\\) { try { $x = Invoke-WebRequest -Uri \"http://localhost:5199$m\" -UseBasicParsing -TimeoutSec 20; \"OK   $m -> $\\($x.StatusCode\\) len=$\\($x.Content.Length\\)\" } catch { \"FAIL $m -> $_\" } })",
-      "PowerShell(pnpm build 2>&1 | Select-Object -Last 10; \"\"; \"--- Dateien ---\"; Get-ChildItem -Recurse -File -Path src,supabase | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\(\"D:\\\\dev\\\\pnp-buddy\\\\\",\"\"\\) })"
+      "PowerShell(pnpm build 2>&1 | Select-Object -Last 10; \"\"; \"--- Dateien ---\"; Get-ChildItem -Recurse -File -Path src,supabase | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\(\"D:\\\\dev\\\\pnp-buddy\\\\\",\"\"\\) })",
+      "Bash(pnpm test *)",
+      "Bash(node -e ' *)",
+      "WebFetch(domain:dnd5e.wikidot.com)",
+      "Bash(supabase --version)",
+      "Bash(pnpm exec *)",
+      "Bash(git rm *)"
     ]
   }
 }

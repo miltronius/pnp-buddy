@@ -5,83 +5,83 @@ import {
 } from "./normalize";
 import { newCrew, newMap, newCharacter, newScene, newLogbook, newDrawing } from "./game";
 import type {
-  Charakter, Crew, KampagnenDaten, KartenZustand,
-  LogbuchZustand, SchauplatzZustand, ZeichnungZustand,
+  Character, Crew, CampaignData, MapState,
+  LogbookState, SceneState, DrawingState,
 } from "../types";
 
 export interface Storage {
-  readonly modus: "cloud" | "lokal";
-  ladeAlles(): Promise<KampagnenDaten>;
-  speichereCharaktere(chars: Charakter[]): Promise<void>;
-  loescheCharakter(id: string): Promise<void>;
-  speichereCrew(crew: Crew): Promise<void>;
-  speichereKarte(karte: KartenZustand): Promise<void>;
-  speichereZeichnung(zeichnung: ZeichnungZustand): Promise<void>;
-  speichereSchauplatz(schauplatz: SchauplatzZustand): Promise<void>;
-  speichereLogbuch(logbuch: LogbuchZustand): Promise<void>;
-  /** Nimmt eine Data-URL entgegen und liefert den zu speichernden Wert. */
-  bildSpeichern(datenUrl: string): Promise<string>;
-  /** Macht aus dem gespeicherten Wert eine anzeigbare URL. */
-  bildUrl(wert: string | null): string | null;
+  readonly mode: "cloud" | "local";
+  loadAll(): Promise<CampaignData>;
+  saveCharacters(chars: Character[]): Promise<void>;
+  deleteCharacter(id: string): Promise<void>;
+  saveCrew(crew: Crew): Promise<void>;
+  saveMap(map: MapState): Promise<void>;
+  saveDrawing(drawing: DrawingState): Promise<void>;
+  saveScene(scene: SceneState): Promise<void>;
+  saveLogbook(logbook: LogbookState): Promise<void>;
+  /** Accepts a data URL and returns the value to store. */
+  saveImage(dataUrl: string): Promise<string>;
+  /** Turns the stored value into a displayable URL. */
+  imageUrl(value: string | null): string | null;
 }
 
 export const STORAGE_KEYS = {
   chars: "gla:chars",
   crew: "gla:crew",
-  karte: "gla:map",
-  zeichnung: "gla:drawing",
-  schauplatz: "gla:detail",
-  logbuch: "gla:notes",
+  map: "gla:map",
+  drawing: "gla:drawing",
+  scene: "gla:detail",
+  logbook: "gla:notes",
 } as const;
 
-function lies(schluessel: string): unknown {
+function read(key: string): unknown {
   try {
-    const roh = localStorage.getItem(schluessel);
-    return roh ? JSON.parse(roh) : null;
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function schreib(schluessel: string, wert: unknown): void {
+function write(key: string, value: unknown): void {
   try {
-    localStorage.setItem(schluessel, JSON.stringify(wert));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // Quota überschritten — meist ein zu großes Bild
-    throw new Error("Zu groß für den Browser-Speicher — kleineres Bild wählen");
+    // Quota exceeded — usually caused by an image that is too large
+    throw new Error("Too large for browser storage — choose a smaller image");
   }
 }
 
 export function createLocalStorage(): Storage {
   return {
-    modus: "lokal",
+    mode: "local",
 
-    async ladeAlles(): Promise<KampagnenDaten> {
-      const rohChars = lies(STORAGE_KEYS.chars);
-      const chars = Array.isArray(rohChars) && rohChars.length
-        ? rohChars.map(normalizeCharacter)
+    async loadAll(): Promise<CampaignData> {
+      const rawChars = read(STORAGE_KEYS.chars);
+      const chars = Array.isArray(rawChars) && rawChars.length
+        ? rawChars.map(normalizeCharacter)
         : [newCharacter()];
       return {
         chars,
-        crew: lies(STORAGE_KEYS.crew) ? normalizeCrew(lies(STORAGE_KEYS.crew)) : newCrew(),
-        karte: lies(STORAGE_KEYS.karte) ? normalizeMap(lies(STORAGE_KEYS.karte)) : newMap(),
-        zeichnung: lies(STORAGE_KEYS.zeichnung) ? normalizeDrawing(lies(STORAGE_KEYS.zeichnung)) : newDrawing(),
-        schauplatz: lies(STORAGE_KEYS.schauplatz) ? normalizeScene(lies(STORAGE_KEYS.schauplatz)) : newScene(),
-        logbuch: lies(STORAGE_KEYS.logbuch) ? normalizeLogbook(lies(STORAGE_KEYS.logbuch)) : newLogbook(),
+        crew: read(STORAGE_KEYS.crew) ? normalizeCrew(read(STORAGE_KEYS.crew)) : newCrew(),
+        map: read(STORAGE_KEYS.map) ? normalizeMap(read(STORAGE_KEYS.map)) : newMap(),
+        drawing: read(STORAGE_KEYS.drawing) ? normalizeDrawing(read(STORAGE_KEYS.drawing)) : newDrawing(),
+        scene: read(STORAGE_KEYS.scene) ? normalizeScene(read(STORAGE_KEYS.scene)) : newScene(),
+        logbook: read(STORAGE_KEYS.logbook) ? normalizeLogbook(read(STORAGE_KEYS.logbook)) : newLogbook(),
       };
     },
 
-    async speichereCharaktere(chars) { schreib(STORAGE_KEYS.chars, chars); },
-    async loescheCharakter() { /* im lokalen Modus wird das ganze Array geschrieben */ },
-    async speichereCrew(crew) { schreib(STORAGE_KEYS.crew, crew); },
-    async speichereKarte(karte) { schreib(STORAGE_KEYS.karte, karte); },
-    async speichereZeichnung(zeichnung) { schreib(STORAGE_KEYS.zeichnung, zeichnung); },
-    async speichereSchauplatz(schauplatz) { schreib(STORAGE_KEYS.schauplatz, schauplatz); },
-    async speichereLogbuch(logbuch) { schreib(STORAGE_KEYS.logbuch, logbuch); },
+    async saveCharacters(chars) { write(STORAGE_KEYS.chars, chars); },
+    async deleteCharacter() { /* in local mode the whole array is written */ },
+    async saveCrew(crew) { write(STORAGE_KEYS.crew, crew); },
+    async saveMap(map) { write(STORAGE_KEYS.map, map); },
+    async saveDrawing(drawing) { write(STORAGE_KEYS.drawing, drawing); },
+    async saveScene(scene) { write(STORAGE_KEYS.scene, scene); },
+    async saveLogbook(logbook) { write(STORAGE_KEYS.logbook, logbook); },
 
-    // Lokal bleiben Bilder Data-URLs — es gibt keinen Ort, wohin sonst.
-    async bildSpeichern(datenUrl) { return datenUrl; },
-    bildUrl(wert) { return wert; },
+    // Locally, images stay as data URLs — there is nowhere else to put them.
+    async saveImage(dataUrl) { return dataUrl; },
+    imageUrl(value) { return value; },
   };
 }
 

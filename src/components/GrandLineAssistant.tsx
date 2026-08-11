@@ -3,6 +3,7 @@ import type { SystemName, TabName } from "../types";
 import { signOut } from "../hooks/useAuth";
 import { useCampaign } from "../state/CampaignContext";
 import { useSession } from "../state/SessionContext";
+import { useT, LangToggle } from "../i18n";
 import { CharacterSheet } from "./CharacterSheet";
 import { DnDAssistant } from "./DnDAssistant";
 import { CombatTracker } from "./CombatTracker";
@@ -14,29 +15,6 @@ import { Scene } from "./Scene";
 import { WantedPosters } from "./WantedPosters";
 import { DiceOverlay } from "./DiceOverlay";
 import { DiceTable } from "./DiceTable";
-
-const SYSTEME: { id: SystemName; titel: string }[] = [
-  { id: "pnp", titel: "⚓ PnP — Grand Line" },
-  { id: "dnd", titel: "🐉 D&D" },
-];
-
-const TABS: { id: TabName; titel: string }[] = [
-  { id: "bogen", titel: "Charakterbogen" },
-  { id: "wuerfel", titel: "Würfeltisch" },
-  { id: "kampf", titel: "Kampf ⚔" },
-  { id: "karte", titel: "Karte 🗺" },
-  { id: "zeichnen", titel: "Kartografie ✎" },
-  { id: "detail", titel: "Schauplatz ⌗" },
-  { id: "notizen", titel: "Logbuch ✒" },
-  { id: "crew", titel: "Steckbriefe ☠" },
-];
-
-const STATUS_TEXT: Record<string, string> = {
-  idle: "",
-  saving: "speichert …",
-  saved: "gespeichert ⚓",
-  error: "nicht gespeichert",
-};
 
 function loadSystem(): SystemName {
   try {
@@ -50,26 +28,51 @@ export function GrandLineAssistant({ email }: { email?: string | null }) {
   const { loading, loadError, storage, saveStatus, saveError, toast } = useCampaign();
   const { tab, setTab } = useSession();
   const [system, setSystemRaw] = useState<SystemName>(loadSystem);
+  const t = useT();
 
   function setSystem(s: SystemName) {
     setSystemRaw(s);
     try { localStorage.setItem("gla:system", s); } catch { /* ignorieren */ }
   }
 
-  if (loading) return <LoadingScreen text="Logbuch wird geöffnet …" />;
+  if (loading) return <LoadingScreen textKey="loading_log" />;
+
+  const SYSTEME: { id: SystemName; label: string }[] = [
+    { id: "pnp", label: t.system_pnp },
+    { id: "dnd", label: t.system_dnd },
+  ];
+
+  const TABS: { id: TabName; label: string }[] = [
+    { id: "sheet",       label: t.tab_bogen },
+    { id: "dice",        label: t.tab_wuerfel },
+    { id: "combat",      label: t.tab_kampf },
+    { id: "map",         label: t.tab_karte },
+    { id: "cartography", label: t.tab_zeichnen },
+    { id: "scene",       label: t.tab_detail },
+    { id: "logbook",     label: t.tab_notizen },
+    { id: "crew",        label: t.tab_crew },
+  ];
+
+  const STATUS_TEXT: Record<string, string> = {
+    idle: "",
+    saving: t.gla_saving,
+    saved:  t.gla_saved,
+    error:  t.gla_unsaved,
+  };
 
   return (
     <div className="gla-root">
       <div className="gla-topbar">
         <span className={`speicher-status ${saveStatus === "error" ? "fehler" : ""}`}
           title={saveError ?? undefined}>
-          {storage.modus === "lokal" && "nur auf diesem Gerät · "}
+          {storage.mode === "local" && `${t.gla_local_only} · `}
           {STATUS_TEXT[saveStatus]}
         </span>
+        <LangToggle />
         {email && (
           <>
             <span className="konto">{email}</span>
-            <button className="abmelden" onClick={() => void signOut()}>Abmelden</button>
+            <button className="abmelden" onClick={() => void signOut()}>{t.gla_logout}</button>
           </>
         )}
       </div>
@@ -78,7 +81,7 @@ export function GrandLineAssistant({ email }: { email?: string | null }) {
         {SYSTEME.map(s => (
           <button key={s.id} className={`system-tab ${system === s.id ? "active" : ""}`}
             onClick={() => setSystem(s.id)}>
-            {s.titel}
+            {s.label}
           </button>
         ))}
       </nav>
@@ -86,33 +89,33 @@ export function GrandLineAssistant({ email }: { email?: string | null }) {
       {system === "pnp" && (
         <>
           <header className="gla-header">
-            <h1>⚓ Grand Line Assistant</h1>
-            <div className="sub">Logbuch eurer Kampagne — Bögen, Würfel &amp; Beute</div>
+            <h1>{t.gla_header}</h1>
+            <div className="sub">{t.gla_subtitle}</div>
           </header>
 
           {loadError && (
             <p className="auth-hinweis" style={{ margin: "0 auto 12px", color: "#ef6a52" }}>
-              Daten konnten nicht geladen werden: {loadError}
+              {t.gla_load_error}: {loadError}
             </p>
           )}
 
           <nav className="gla-tabs">
-            {TABS.map(t => (
-              <button key={t.id} className={`gla-tab ${tab === t.id ? "active" : ""}`}
-                onClick={() => setTab(t.id)}>
-                {t.titel}
+            {TABS.map(tab_ => (
+              <button key={tab_.id} className={`gla-tab ${tab === tab_.id ? "active" : ""}`}
+                onClick={() => setTab(tab_.id)}>
+                {tab_.label}
               </button>
             ))}
           </nav>
 
-          {tab === "bogen" && <CharacterSheet />}
-          {tab === "wuerfel" && <DiceTable />}
-          {tab === "kampf" && <CombatTracker />}
-          {tab === "karte" && <MapTracker />}
-          {tab === "zeichnen" && <Cartography />}
-          {tab === "detail" && <Scene />}
-          {tab === "notizen" && <Logbook />}
-          {tab === "crew" && <WantedPosters />}
+          {tab === "sheet"       && <CharacterSheet />}
+          {tab === "dice"        && <DiceTable />}
+          {tab === "combat"      && <CombatTracker />}
+          {tab === "map"         && <MapTracker />}
+          {tab === "cartography" && <Cartography />}
+          {tab === "scene"       && <Scene />}
+          {tab === "logbook"     && <Logbook />}
+          {tab === "crew"        && <WantedPosters />}
 
           <DiceOverlay />
         </>

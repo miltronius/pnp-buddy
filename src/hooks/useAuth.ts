@@ -56,6 +56,12 @@ export async function signUp(email: string, password: string): Promise<{ confirm
   return { confirmationRequired: !data.session };
 }
 
+export async function signInWithMagicLink(email: string): Promise<void> {
+  if (!supabase) throw new Error("Supabase ist nicht konfiguriert");
+  const { error } = await supabase.auth.signInWithOtp({ email });
+  if (error) throw error;
+}
+
 export async function signOut(): Promise<void> {
   if (!supabase) return;
   await supabase.auth.signOut();

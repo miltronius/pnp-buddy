@@ -1,7 +1,8 @@
-import { ATTRIBUTE, type AttributName, type Charakter, type Kaempfer, type Waffe } from "../types";
+import { ATTRIBUTE, type AttrName, type Character, type Fighter, type Weapon } from "../types";
 import { balanceValue, newId } from "../lib/game";
 import { useCampaign } from "../state/CampaignContext";
 import { useSession } from "../state/SessionContext";
+import { useT } from "../i18n";
 import { NumberInput } from "./NumberInput";
 
 export function CombatTracker() {
@@ -11,38 +12,38 @@ export function CombatTracker() {
     combatActive, setCombatActive,
     rollProbeFor, rollDamage, rollFlat, rollInitiative,
   } = useSession();
+  const t = useT();
 
-  /* ---- Reihenfolge: höchste Initiative zuerst, sonst Eintragsreihenfolge ---- */
-  const sortiert = [...fighters]
+  const sorted = [...fighters]
     .map((f, i) => ({ ...f, _idx: i }))
     .sort((a, b) => {
-      const ai = a.ini == null ? -Infinity : a.ini;
-      const bi = b.ini == null ? -Infinity : b.ini;
+      const ai = a.initiative == null ? -Infinity : a.initiative;
+      const bi = b.initiative == null ? -Infinity : b.initiative;
       if (bi !== ai) return bi - ai;
       return a._idx - b._idx;
     });
 
-  function addFighterFromChar(c: Charakter) {
-    if (fighters.some(f => f.charId === c.id)) { showToast("Schon im Kampf dabei"); return; }
+  function addFighterFromChar(c: Character) {
+    if (fighters.some(f => f.charId === c.id)) { showToast(t.combat_already_in); return; }
     setFighters(fs => [...fs, {
       id: newId("f"),
-      charId: c.id, name: c.name || "Namenlos", seite: "crew",
-      iniAtt: "Geschicklichkeit", ini: null,
-      hp: Number(c.leben) || 10, maxHp: Number(c.leben) || 10, tot: false,
+      charId: c.id, name: c.name || t.char_nameless, side: "crew",
+      initAttr: "Geschicklichkeit", initiative: null,
+      hp: Number(c.hp) || 10, maxHp: Number(c.hp) || 10, dead: false,
     }]);
   }
 
   function addEnemy() {
     setFighters(fs => [...fs, {
       id: newId("f"),
-      charId: null, name: "", seite: "gegner",
-      iniAtt: "Geschicklichkeit", ini: null,
-      hp: 10, maxHp: 10, tot: false, iniMod: 0,
-      atkMod: 2, atkDmg: "W6",
+      charId: null, name: "", side: "enemy",
+      initAttr: "Geschicklichkeit", initiative: null,
+      hp: 10, maxHp: 10, dead: false, initMod: 0,
+      attackMod: 2, attackDamage: "W6",
     }]);
   }
 
-  const patchFighter = (id: string, p: Partial<Kaempfer>) =>
+  const patchFighter = (id: string, p: Partial<Fighter>) =>
     setFighters(fs => fs.map(f => (f.id === id ? { ...f, ...p } : f)));
 
   const delFighter = (id: string) =>
@@ -52,28 +53,26 @@ export function CombatTracker() {
     setFighters(fs => fs.map(f => {
       if (f.id !== id) return f;
       const hp = Math.max(0, Math.min(f.maxHp, f.hp + delta));
-      return { ...f, hp, tot: hp <= 0 };
+      return { ...f, hp, dead: hp <= 0 };
     }));
 
-  /** Waffen eines Kämpfers aus dem verknüpften Charakter holen. */
-  function fighterWeapons(f: Kaempfer): Waffe[] {
+  function fighterWeapons(f: Fighter): Weapon[] {
     if (!f.charId) return [];
     const c = chars.find(x => x.id === f.charId);
-    return c?.waffen?.filter(w => (w.name || "").trim() || (w.schaden || "").trim()) ?? [];
+    return c?.weapons?.filter(w => (w.name || "").trim() || (w.damage || "").trim()) ?? [];
   }
 
-  /** Alle auf einmal auswürfeln — still, ohne Tisch, für den schnellen Start. */
   function rollAllInitiative() {
     setFighters(fs => fs.map(f => {
-      const wurf = 2 + Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6);
+      const roll = 2 + Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6);
       let mod = 0;
       if (f.charId) {
         const c = chars.find(x => x.id === f.charId);
-        if (c) mod = balanceValue(c.attribute[f.iniAtt]);
+        if (c) mod = balanceValue(c.attrs[f.initAttr]);
       } else {
-        mod = Number(f.iniMod) || 0;
+        mod = Number(f.initMod) || 0;
       }
-      return { ...f, ini: wurf + mod };
+      return { ...f, initiative: roll + mod };
     }));
     setCombatActive(true);
     setRound(1);
@@ -81,7 +80,7 @@ export function CombatTracker() {
   }
 
   function startCombat() {
-    if (fighters.length === 0) { showToast("Erst Kämpfer hinzufügen"); return; }
+    if (fighters.length === 0) { showToast(t.combat_add_first); return; }
     setCombatActive(true);
     setRound(1);
     setTurnIdx(0);
@@ -94,21 +93,21 @@ export function CombatTracker() {
   }
 
   function nextTurn() {
-    const order = sortiert;
+    const order = sorted;
     if (order.length === 0) return;
     let ti = turnIdx, r = round, guard = 0;
     do {
       ti++;
       if (ti >= order.length) { ti = 0; r++; }
       guard++;
-    } while (order[ti] && order[ti].tot && guard <= order.length);
-    if (guard > order.length && order.every(f => f.tot)) return;
+    } while (order[ti] && order[ti].dead && guard <= order.length);
+    if (guard > order.length && order.every(f => f.dead)) return;
     setTurnIdx(ti);
     setRound(r);
   }
 
   function resetInitiative() {
-    setFighters(fs => fs.map(f => ({ ...f, ini: null })));
+    setFighters(fs => fs.map(f => ({ ...f, initiative: null })));
     setTurnIdx(0);
     setRound(1);
   }
@@ -118,51 +117,51 @@ export function CombatTracker() {
       <div className="combat">
         <div className="combat-bar">
           <div className="combat-round">
-            {combatActive ? `Runde ${round}` : "Kampf vorbereiten"}
+            {combatActive ? `${t.combat_round} ${round}` : t.combat_prepare}
           </div>
           <div className="combat-actions">
             {!combatActive ? (
               <>
-                <button className="gla-btn" onClick={rollAllInitiative}>Alle Ini würfeln &amp; starten</button>
-                <button className="gla-btn" onClick={startCombat}>Kampf starten</button>
+                <button className="gla-btn" onClick={rollAllInitiative}>{t.combat_roll_all}</button>
+                <button className="gla-btn" onClick={startCombat}>{t.combat_start}</button>
               </>
             ) : (
               <>
-                <button className="gla-btn primary" onClick={nextTurn}>Nächster ▸</button>
-                <button className="gla-btn" onClick={resetInitiative}>Ini zurücksetzen</button>
-                <button className="gla-btn" onClick={endCombat}>Kampf beenden</button>
+                <button className="gla-btn primary" onClick={nextTurn}>{t.combat_next}</button>
+                <button className="gla-btn" onClick={resetInitiative}>{t.combat_reset_ini}</button>
+                <button className="gla-btn" onClick={endCombat}>{t.combat_end}</button>
               </>
             )}
           </div>
         </div>
 
         <div className="add-row">
-          <span className="add-label">Crew hinzufügen:</span>
+          <span className="add-label">{t.combat_add_crew}</span>
           {chars.map(c => (
             <button key={c.id} className="add-chip" onClick={() => addFighterFromChar(c)}>
-              + {c.name || "Namenlos"}
+              + {c.name || t.char_nameless}
             </button>
           ))}
-          <button className="add-chip enemy" onClick={addEnemy}>+ Gegner</button>
+          <button className="add-chip enemy" onClick={addEnemy}>{t.combat_add_enemy}</button>
         </div>
 
         {fighters.length === 0 && (
           <p className="section-empty" style={{ color: "var(--parchment)" }}>
-            Noch niemand im Kampf. Füge Crew-Mitglieder oder Gegner hinzu.
+            {t.combat_none}
           </p>
         )}
 
         <div className="fighter-list">
-          {sortiert.map((f, i) => {
+          {sorted.map((f, i) => {
             const isTurn = combatActive && i === turnIdx;
             const hpPct = f.maxHp > 0 ? Math.round((f.hp / f.maxHp) * 100) : 0;
-            const waffen = fighterWeapons(f);
+            const weapons = fighterWeapons(f);
             const char = f.charId ? chars.find(c => c.id === f.charId) ?? null : null;
             return (
-              <div className={`fighter ${f.seite} ${f.tot ? "tot" : ""} ${isTurn ? "active-turn" : ""}`} key={f.id}>
+              <div className={`fighter ${f.side} ${f.dead ? "dead" : ""} ${isTurn ? "active-turn" : ""}`} key={f.id}>
                 <div className="fighter-ini">
-                  <div className="ini-val">{f.ini == null ? "–" : f.ini}</div>
-                  <button className="ini-roll" title="Initiative würfeln"
+                  <div className="ini-val">{f.initiative == null ? "–" : f.initiative}</div>
+                  <button className="ini-roll" title={t.combat_ini_roll}
                     onClick={() => rollInitiative(f, char)}>🎲</button>
                 </div>
 
@@ -171,11 +170,11 @@ export function CombatTracker() {
                     {f.charId ? (
                       <span className="fighter-name">{f.name}</span>
                     ) : (
-                      <input className="gla-input fighter-name-input" value={f.name} placeholder="Gegner benennen"
+                      <input className="gla-input fighter-name-input" value={f.name} placeholder={t.combat_name_enemy}
                         onChange={e => patchFighter(f.id, { name: e.target.value })} />
                     )}
-                    <span className={`side-tag ${f.seite}`}>{f.seite === "crew" ? "Crew" : "Gegner"}</span>
-                    {f.tot && <span className="dead-tag">☠ besiegt</span>}
+                    <span className={`side-tag ${f.side}`}>{f.side === "crew" ? t.combat_crew_side : t.combat_enemy_side}</span>
+                    {f.dead && <span className="dead-tag">{t.combat_defeated}</span>}
                   </div>
 
                   <div className="hp-row">
@@ -184,10 +183,10 @@ export function CombatTracker() {
                         style={{ width: hpPct + "%" }} />
                     </div>
                     <div className="hp-num">
-                      <NumberInput min={0} value={f.hp} ariaLabel="Trefferpunkte"
-                        onChange={v => patchFighter(f.id, { hp: v, tot: v <= 0 })} />
+                      <NumberInput min={0} value={f.hp} ariaLabel={t.combat_hp}
+                        onChange={v => patchFighter(f.id, { hp: v, dead: v <= 0 })} />
                       <span className="hp-sep">/</span>
-                      <NumberInput min={1} value={f.maxHp} ariaLabel="Maximale Trefferpunkte"
+                      <NumberInput min={1} value={f.maxHp} ariaLabel={t.combat_hp_max}
                         onChange={v => patchFighter(f.id, { maxHp: v })} />
                     </div>
                   </div>
@@ -199,32 +198,32 @@ export function CombatTracker() {
                     <button onClick={() => damageFighter(f.id, +5)}>+5</button>
                     {!f.charId && (
                       <label className="ini-mod-field">
-                        Ini-Mod
-                        <NumberInput value={f.iniMod || 0} ariaLabel="Initiative-Modifikator"
-                          onChange={v => patchFighter(f.id, { iniMod: v })} />
+                        {t.combat_ini_mod}
+                        <NumberInput value={f.initMod || 0} ariaLabel={t.combat_ini_mod}
+                          onChange={v => patchFighter(f.id, { initMod: v })} />
                       </label>
                     )}
                     {f.charId && (
-                      <select className="ini-att-sel" value={f.iniAtt} title="Initiative-Attribut"
-                        onChange={e => patchFighter(f.id, { iniAtt: e.target.value as AttributName })}>
+                      <select className="ini-att-sel" value={f.initAttr} title={t.combat_ini_attr}
+                        onChange={e => patchFighter(f.id, { initAttr: e.target.value as AttrName })}>
                         {ATTRIBUTE.map(a => <option key={a} value={a}>{a}</option>)}
                       </select>
                     )}
-                    <button className="fighter-del" onClick={() => delFighter(f.id)} aria-label="Entfernen">✕</button>
+                    <button className="fighter-del" onClick={() => delFighter(f.id)} aria-label={t.remove}>✕</button>
                   </div>
 
                   {f.charId ? (
-                    waffen.length === 0 ? (
-                      <div className="atk-row empty">Keine Waffen — auf dem Charakterbogen anlegen</div>
+                    weapons.length === 0 ? (
+                      <div className="atk-row empty">{t.combat_no_weapons}</div>
                     ) : (
                       <div className="atk-row">
-                        {waffen.map(w => (
+                        {weapons.map(w => (
                           <span className="atk-weapon" key={w.id}>
-                            <span className="atk-wname">{w.name || "Waffe"}</span>
-                            <button className="atk-btn hit" title={`Treffer (${w.att})`}
-                              onClick={() => rollProbeFor(w.att, `${f.name} — ${w.name || "Angriff"}`, { backTo: "kampf" })}>⚔</button>
-                            <button className="atk-btn dmg" title={`Schaden (${w.schaden})`}
-                              onClick={() => rollDamage(w, { label: `${f.name} — ${w.name || "Schaden"}`, backTo: "kampf" })}>🎲</button>
+                            <span className="atk-wname">{w.name || t.combat_enemy_side}</span>
+                            <button className="atk-btn hit" title={`${t.weapon_hit} (${w.att})`}
+                              onClick={() => rollProbeFor(w.att, `${f.name} — ${w.name || t.combat_attack_bonus}`, { backTo: "combat" })}>⚔</button>
+                            <button className="atk-btn dmg" title={`${t.weapon_damage} (${w.damage})`}
+                              onClick={() => rollDamage(w, { label: `${f.name} — ${w.name || t.dice_damage}`, backTo: "combat" })}>🎲</button>
                           </span>
                         ))}
                       </div>
@@ -232,20 +231,20 @@ export function CombatTracker() {
                   ) : (
                     <div className="atk-row">
                       <span className="atk-weapon">
-                        <button className="atk-btn hit" title="Angriff (2W6 + Bonus)"
-                          onClick={() => rollFlat(`${f.name || "Gegner"} — Angriff`, Number(f.atkMod) || 0, { backTo: "kampf" })}>⚔ Angriff</button>
+                        <button className="atk-btn hit"
+                          onClick={() => rollFlat(`${f.name || t.combat_enemy_side} — ${t.combat_attack_bonus}`, Number(f.attackMod) || 0, { backTo: "combat" })}>{t.weapon_hit}</button>
                         <label className="atk-mini">
-                          +<NumberInput value={f.atkMod || 0} ariaLabel="Angriffsbonus"
-                            onChange={v => patchFighter(f.id, { atkMod: v })} />
+                          +<NumberInput value={f.attackMod || 0} ariaLabel={t.combat_attack_bonus}
+                            onChange={v => patchFighter(f.id, { attackMod: v })} />
                         </label>
-                        <button className="atk-btn dmg" title="Schaden"
+                        <button className="atk-btn dmg"
                           onClick={() => rollDamage(
-                            { name: f.name || "Gegner", schaden: f.atkDmg || "W6" },
-                            { label: `${f.name || "Gegner"} — Schaden`, backTo: "kampf" },
-                          )}>🎲 Schaden</button>
-                        <input className="gla-input atk-dmg-input" value={f.atkDmg || ""} placeholder="W6"
-                          aria-label="Gegner-Schaden"
-                          onChange={e => patchFighter(f.id, { atkDmg: e.target.value })} />
+                            { name: f.name || t.combat_enemy_side, damage: f.attackDamage || "W6" },
+                            { label: `${f.name || t.combat_enemy_side} — ${t.dice_damage}`, backTo: "combat" },
+                          )}>{t.weapon_damage}</button>
+                        <input className="gla-input atk-dmg-input" value={f.attackDamage || ""} placeholder="W6"
+                          aria-label={t.combat_enemy_damage}
+                          onChange={e => patchFighter(f.id, { attackDamage: e.target.value })} />
                       </span>
                     </div>
                   )}
